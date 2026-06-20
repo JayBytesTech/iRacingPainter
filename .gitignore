@@ -16,6 +16,9 @@ templates/*/zones/segments.png
 templates/*/zones/segments.json
 templates/*/zones/segments_preview.png
 
+# Auto-generated calibration skins (regenerate with: python -m iracing_painter.calibrate <template>)
+templates/*/calibration/
+
 # OS
 .DS_Store
 

@@ -15,15 +15,15 @@ import json
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
+from .assets import LocalAssetProvider
+from .fonts import load_font
 from .spec import load_spec
 from .tga import save_tga
 
 # Tolerance (per channel) for matching the template's flat body fill.
 BODY_MATCH_TOLERANCE = 18
-
-FONT_PATH = "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf"
 
 
 def _hex_to_rgb(value: str) -> tuple[int, int, int]:
@@ -69,13 +69,69 @@ def render_livery(spec: dict, template_dir: str | Path, out_path: str | Path) ->
     for c in range(3):
         arr[..., c][rest] = base_color[c]
 
-    # Elements draw on top of all fills (they're decals, not body paint).
+    # Elements draw on top of all fills (they're decals, not body paint),
+    # in spec order.
     img = Image.fromarray(arr, "RGBA")
+    assets = LocalAssetProvider()
     for el in spec.get("elements", []):
-        if el.get("type") == "number":
+        kind = el.get("type")
+        if kind == "number":
             _draw_number(img, template_dir, el)
+        elif kind == "logo":
+            _draw_logo(img, template_dir, el, assets)
 
     return save_tga(img, out_path)
+
+
+def _zone_bbox(template_dir: Path, target: str):
+    """Union bbox + center of a zone/group, from segments.json. None if unknown."""
+    resolve = _zone_resolver(template_dir)
+    ids = resolve(target)
+    if not ids:
+        return None
+    records = {
+        r["id"]: r
+        for r in json.loads((template_dir / "zones" / "segments.json").read_text())
+    }
+    boxes = [records[i]["bbox"] for i in ids if i in records]
+    if not boxes:
+        return None
+    x1 = min(b[0] for b in boxes)
+    y1 = min(b[1] for b in boxes)
+    x2 = max(b[2] for b in boxes)
+    y2 = max(b[3] for b in boxes)
+    return (x1, y1, x2, y2, (x1 + x2) // 2, (y1 + y2) // 2)
+
+
+def _draw_logo(img, template_dir, el, assets) -> None:
+    """Place a logo, anchored to a zone/group centroid or explicit UV coords."""
+    logo = assets.get(el["asset"])
+
+    if "zone" in el:  # zone-anchored: size as a fraction of the zone bbox
+        box = _zone_bbox(template_dir, el["zone"])
+        if box is None:
+            print(f"  ! logo zone {el['zone']!r} not resolvable; skipping")
+            return
+        x1, y1, x2, y2, cx, cy = box
+        scale = float(el.get("scale", 0.6))
+        target_w = max(1, int((x2 - x1) * scale))
+    else:  # explicit placement
+        cx, cy = el["at"]
+        target_w = int(el.get("width", logo.width))
+
+    ratio = target_w / logo.width
+    target_h = max(1, int(logo.height * ratio))
+    logo = logo.resize((max(1, target_w), target_h), Image.LANCZOS)
+
+    if el.get("rotation"):
+        logo = logo.rotate(float(el["rotation"]), expand=True, resample=Image.BICUBIC)
+
+    opacity = float(el.get("opacity", 1.0))
+    if opacity < 1.0:
+        alpha = logo.split()[3].point(lambda a: int(a * opacity))
+        logo.putalpha(alpha)
+
+    img.alpha_composite(logo, (int(cx - logo.width / 2), int(cy - logo.height / 2)))
 
 
 def _zone_resolver(template_dir: Path):
@@ -117,7 +173,7 @@ def _draw_number(img: Image.Image, template_dir: Path, el: dict) -> None:
         tw, th = (bh, bw) if rot in (90, 270) else (bw, bh)
         if tw <= 0 or th <= 0:
             continue
-        font = _fit_font(value, tw, th)
+        font = _fit_number_font(value, tw, th)
         tile = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
         d = ImageDraw.Draw(tile)
         tb = d.textbbox((0, 0), value, font=font,
@@ -133,21 +189,17 @@ def _draw_number(img: Image.Image, template_dir: Path, el: dict) -> None:
         img.alpha_composite(tile, (x1 + pad, y1 + pad))
 
 
-def _fit_font(text: str, max_w: int, max_h: int) -> ImageFont.FreeTypeFont:
-    """Largest font (by height) whose text fits within max_w x max_h."""
-    probe = Image.new("RGBA", (8, 8))
-    d = ImageDraw.Draw(probe)
+def _fit_number_font(text: str, max_w: int, max_h: int):
+    """Largest font whose text fits within max_w x max_h."""
+    d = ImageDraw.Draw(Image.new("RGBA", (8, 8)))
     size = max_h
     while size > 6:
-        try:
-            font = ImageFont.truetype(FONT_PATH, size)
-        except Exception:
-            return ImageFont.load_default()
+        font = load_font(size)
         tb = d.textbbox((0, 0), text, font=font)
         if (tb[2] - tb[0]) <= max_w and (tb[3] - tb[1]) <= max_h:
             return font
         size -= 2
-    return ImageFont.truetype(FONT_PATH, 8)
+    return load_font(8)
 
 
 def render_file(spec_path: str | Path, out_path: str | Path | None = None) -> Path:

@@ -1,0 +1,18 @@
+{
+  "schema_version": "0.1",
+  "template": "porsche_992_gt3",
+  "meta": { "name": "P4 Demo", "author": "Jay", "description": "Logos from the asset library." },
+  "palette": { "primary": "#101418", "white": "#f5f5f5", "accent": "#e23030" },
+  "base": { "fill": { "type": "solid", "color": "#101418" } },
+  "zones": {
+    "roof": { "fill": { "type": "solid", "color": "#f5f5f5" } },
+    "hood": { "fill": { "type": "solid", "color": "#f5f5f5" } },
+    "rockers": { "fill": { "type": "solid", "color": "#e23030" } }
+  },
+  "elements": [
+    { "type": "logo", "asset": "apex", "zone": "hood", "scale": 0.55 },
+    { "type": "logo", "asset": "volt", "zone": "roof", "scale": 0.5 },
+    { "type": "logo", "asset": "apex", "zone": "rear_wing", "scale": 0.7 },
+    { "type": "number", "value": "24", "color": "#101418", "outline": "#f5f5f5" }
+  ]
+}

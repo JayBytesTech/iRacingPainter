@@ -29,7 +29,9 @@ See the PRD for full scope/architecture. Status:
 - [~] **P3 Renderer features** — seam-safe done: zone groups (two-tone along
       boundaries) + number plates into template number blocks. Cross-panel stripes/
       curves deferred to the projection milestone (see PRD §12).
-- [ ] **P4 Asset library + logos** — SVG/PNG logo placement by anchor.
+- [x] **P4 Asset library + logos** — local provider w/ licensing manifest; `logo`
+      elements anchored to a zone/group centroid or explicit UV coords, with
+      scale/rotation/opacity. (`assets.py`)
 - [ ] **P5 Spec-map generator** — per-zone materials → spec TGA.
 - [ ] **P6 NL → spec (Claude)** — description → validated spec, end-to-end.
 - [ ] **P7 Deploy/sync** — one command to push to the iRacing PC / Trading Paints.
@@ -78,6 +80,15 @@ element types are accepted/rendered in later phases.
 
 Zone groups (e.g. `rockers`, `rear`) are defined in `zones/labels.json` and usable
 anywhere a zone name is.
+
+**Logos** come from the asset library (`assets/logos/`, with a `manifest.json` tracking
+source/license). A `logo` element references an asset by name and is placed either
+anchored to a zone/group (`"zone": "hood", "scale": 0.55`) or at explicit UV coords
+(`"at": [x, y], "width": 180`), with optional `rotation` and `opacity`:
+
+```json
+{ "type": "logo", "asset": "apex", "zone": "hood", "scale": 0.55 }
+```
 
 ## Getting a paint in-sim
 

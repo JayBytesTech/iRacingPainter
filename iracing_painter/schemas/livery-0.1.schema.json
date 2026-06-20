@@ -96,6 +96,26 @@
             "color": { "$ref": "#/$defs/color" },
             "outline": { "$ref": "#/$defs/color" }
           }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["type", "asset"],
+          "description": "Logo/decal from the asset library, anchored to a zone/group centroid or explicit UV coords.",
+          "properties": {
+            "type": { "const": "logo" },
+            "asset": { "type": "string", "minLength": 1 },
+            "zone": { "type": "string" },
+            "at": {
+              "type": "array",
+              "items": { "type": "integer" },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "scale": { "type": "number", "exclusiveMinimum": 0, "maximum": 5 },
+            "width": { "type": "integer", "exclusiveMinimum": 0 },
+            "rotation": { "type": "number" },
+            "opacity": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
         }
       ]
     }

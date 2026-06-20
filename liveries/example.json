@@ -1,5 +1,6 @@
 {
+  "schema_version": "0.1",
   "template": "porsche_992_gt3",
-  "name": "Test Crimson",
-  "body_color": "#8a1322"
+  "meta": { "name": "Test Crimson", "author": "Jay" },
+  "base": { "fill": { "type": "solid", "color": "#8a1322" } }
 }

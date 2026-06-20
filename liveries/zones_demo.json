@@ -1,17 +1,20 @@
 {
+  "schema_version": "0.1",
   "template": "porsche_992_gt3",
-  "name": "Zone Demo",
-  "body_color": "#e8e8e8",
+  "meta": { "name": "Zone Demo", "author": "Jay", "description": "Exercises per-zone fills." },
+  "palette": { "primary": "#e8e8e8", "dark": "#101010", "gold": "#c9a227", "red": "#b01020" },
+  "base": { "fill": { "type": "solid", "color": "#e8e8e8" } },
   "zones": {
-    "roof": "#101010",
-    "hood": "#101010",
-    "front_bumper": "#101010",
-    "rear_wing": "#101010",
-    "rocker_left": "#c9a227",
-    "rocker_right": "#c9a227",
-    "rear_quarter_left": "#b01020",
-    "rear_quarter_right": "#b01020",
-    "mirror_left": "#b01020",
-    "mirror_right": "#b01020"
-  }
+    "roof": { "fill": { "type": "solid", "color": "#101010" } },
+    "hood": { "fill": { "type": "solid", "color": "#101010" } },
+    "front_bumper": { "fill": { "type": "solid", "color": "#101010" } },
+    "rear_wing": { "fill": { "type": "solid", "color": "#101010" } },
+    "rocker_left": { "fill": { "type": "solid", "color": "#c9a227" } },
+    "rocker_right": { "fill": { "type": "solid", "color": "#c9a227" } },
+    "rear_quarter_left": { "fill": { "type": "solid", "color": "#b01020" } },
+    "rear_quarter_right": { "fill": { "type": "solid", "color": "#b01020" } },
+    "mirror_left": { "fill": { "type": "solid", "color": "#b01020" } },
+    "mirror_right": { "fill": { "type": "solid", "color": "#b01020" } }
+  },
+  "materials": { "default": "gloss", "zones": { "roof": "matte" } }
 }

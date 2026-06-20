@@ -3,6 +3,7 @@
   "name": "Porsche 992 R GT3",
   "source_psd": "/home/jaybytestech/Downloads/169_template_992R/Porsche 992r GT3.psd",
   "resolution": [2048, 2048],
+  "body_fill_color": [62, 137, 205],
 
   "export": {
     "comment": "Layers/groups composited into the final color TGA. Everything in 'Turn Off Before Exporting TGA' is a guide and must be excluded.",

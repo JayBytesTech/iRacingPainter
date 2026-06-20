@@ -18,16 +18,19 @@ roof" and the spec is the **zone map** — a one-time annotation of each car's U
 template. Everything (color fills, stripe continuity, decal placement, spec-map
 materials) keys off it.
 
-## Pipeline status
+## Roadmap (v1 = "describe → usable Porsche paint in-sim")
 
-- [x] **Phase 0 — Plumbing.** Read the PSD, extract guide layers + clean base,
-      write valid iRacing TGAs. (`extract.py`, `tga.py`)
-- [~] **Phase 1 — Deterministic painter.** Body recolor works. Next: zone map,
-      stripes / two-tone, number plates. (`render.py`)
-- [ ] **Phase 2 — Asset library.** Sponsor logos, fonts, decals with anchors.
-- [ ] **Phase 3 — Spec map.** R=metallic, G=roughness, B=clearcoat per zone.
-- [ ] **Phase 4 — Describe-to-livery.** LLM → spec JSON (constrained).
-- [ ] **Phase 5 — 3D preview.** Render texture onto the car model.
+See the PRD for full scope/architecture. Status:
+
+- [x] **P0 Plumbing** — PSD ingest, guide-layer extraction, valid TGA round-trip. (`extract.py`, `tga.py`)
+- [x] **P1a Zone map** — UV auto-segmentation + per-zone painting. (`zones.py`, `calibrate.py`)
+- [ ] **P1b Verify zones** — calibration screenshots → finalize `labels.json`. *(awaiting iRacing PC)*
+- [x] **P2 Spec schema v0.1 + validator** — the contract; renderer consumes validated specs. (`schemas/`, `spec.py`)
+- [ ] **P3 Renderer features** — stripes / two-tone splits across zones; number plates.
+- [ ] **P4 Asset library + logos** — SVG/PNG logo placement by anchor.
+- [ ] **P5 Spec-map generator** — per-zone materials → spec TGA.
+- [ ] **P6 NL → spec (Claude)** — description → validated spec, end-to-end.
+- [ ] **P7 Deploy/sync** — one command to push to the iRacing PC / Trading Paints.
 
 ## Template facts (Porsche 992 R GT3)
 
@@ -45,9 +48,30 @@ source .venv/bin/activate
 # One-time per template: pull base + reference layers out of the PSD
 python -m iracing_painter.extract templates/porsche_992_gt3
 
-# Render a livery spec to out/<name>.tga
-python -m iracing_painter.render liveries/example.json
+# Validate a livery spec against the v0.1 contract
+python -m iracing_painter.spec liveries/zones_demo.json
+
+# Render a livery spec to out/<name>.tga (validates first)
+python -m iracing_painter.render liveries/zones_demo.json
 ```
+
+## Livery spec
+
+Liveries are JSON specs validated against `iracing_painter/schemas/livery-0.1.schema.json`.
+Minimal example:
+
+```json
+{
+  "schema_version": "0.1",
+  "template": "porsche_992_gt3",
+  "base": { "fill": { "type": "solid", "color": "#8a1322" } },
+  "zones": { "roof": { "fill": { "type": "solid", "color": "#101010" } } }
+}
+```
+
+Every fill is an object so new fill types (gradient/texture/generated) are additive.
+v0.1 renders solid `base` + `zones`; `elements` and `materials` are accepted by the
+contract but rendered in later phases.
 
 ## Getting a paint in-sim
 

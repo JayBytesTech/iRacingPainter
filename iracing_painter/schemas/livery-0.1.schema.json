@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/JayBytesTech/iRacingPainter/schemas/livery-0.1.schema.json",
+  "title": "iRacing Painter Livery Spec",
+  "description": "The contract between livery design intent and the deterministic renderer. v0.1: solid fills only; elements and materials are part of the contract but rendered in later phases.",
+  "type": "object",
+  "required": ["schema_version", "template", "base"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "template": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Template id, e.g. 'porsche_992_gt3' (a dir under templates/)."
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "author": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    },
+    "palette": {
+      "type": "object",
+      "description": "Named colors for human reference/reuse. Not yet referenced by fills in v0.1.",
+      "additionalProperties": { "$ref": "#/$defs/color" }
+    },
+    "base": {
+      "$ref": "#/$defs/surface",
+      "description": "Fill for the whole car body; zones override on top."
+    },
+    "zones": {
+      "type": "object",
+      "description": "Per-zone fill overrides. Keys must be zone names from the template's zones/labels.json.",
+      "additionalProperties": { "$ref": "#/$defs/surface" }
+    },
+    "elements": {
+      "type": "array",
+      "description": "Ordered draw list (stripes/logos/numbers). Accepted in v0.1 but rendered from P3+.",
+      "items": { "$ref": "#/$defs/element" }
+    },
+    "materials": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Surface materials -> spec map. Accepted in v0.1; spec-map generation lands in P5.",
+      "properties": {
+        "default": { "$ref": "#/$defs/material" },
+        "zones": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/material" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "color": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "description": "Hex color, #rrggbb."
+    },
+    "fill": {
+      "type": "object",
+      "required": ["type"],
+      "description": "Extensible fill. v0.1 supports 'solid'; gradient/texture/generated come later.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "required": ["type", "color"],
+          "properties": {
+            "type": { "const": "solid" },
+            "color": { "$ref": "#/$defs/color" }
+          }
+        }
+      ]
+    },
+    "surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fill"],
+      "properties": { "fill": { "$ref": "#/$defs/fill" } }
+    },
+    "material": { "enum": ["gloss", "matte", "metallic", "chrome"] },
+    "element": {
+      "type": "object",
+      "required": ["type"],
+      "properties": { "type": { "type": "string" } }
+    }
+  }
+}

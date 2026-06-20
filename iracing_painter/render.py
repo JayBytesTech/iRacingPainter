@@ -202,14 +202,26 @@ def _fit_number_font(text: str, max_w: int, max_h: int):
     return load_font(8)
 
 
-def render_file(spec_path: str | Path, out_path: str | Path | None = None) -> Path:
-    """Validate then render a spec file. Returns the output TGA path."""
+def render_file(spec_path: str | Path, out_path: str | Path | None = None):
+    """Validate then render a spec file to color + spec TGAs.
+
+    Returns (color_path, spec_path).
+    """
+    from .spec_map import build_spec_map
+
     spec, template_dir, warnings = load_spec(spec_path)
     for w in warnings:
         print(f"  warning: {w}")
     if out_path is None:
         out_path = Path("out") / (Path(spec_path).stem + ".tga")
-    return render_livery(spec, template_dir, out_path)
+    out_path = Path(out_path)
+
+    color_path = render_livery(spec, template_dir, out_path)
+
+    spec_img = build_spec_map(spec, template_dir)
+    spec_out = out_path.with_name(out_path.stem + "_spec.tga")
+    save_tga(spec_img, spec_out, bits=24)
+    return color_path, spec_out
 
 
 if __name__ == "__main__":
@@ -219,8 +231,9 @@ if __name__ == "__main__":
 
     spec_path = sys.argv[1] if len(sys.argv) > 1 else "liveries/example.json"
     try:
-        path = render_file(spec_path)
+        color_path, spec_out = render_file(spec_path)
     except SpecError as e:
         print(f"INVALID: {e}")
         raise SystemExit(1)
-    print(f"rendered -> {path}")
+    print(f"rendered -> {color_path}")
+    print(f"spec map -> {spec_out}")

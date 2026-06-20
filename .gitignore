@@ -8,6 +8,7 @@ out/
 
 # Template-derived art (regenerate with: python -m iracing_painter.extract <template>)
 templates/*/base.png
+templates/*/spec_base.png
 templates/*/reference/
 templates/*/number_blocks.json
 

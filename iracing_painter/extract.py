@@ -89,6 +89,57 @@ def extract(template_dir: str | Path) -> None:
     # 3. Number blocks: detect the template's number-placement rectangles.
     detect_number_blocks(template_dir)
 
+    # 4. Baseline spec map: composite the Custom Spec Map channel groups.
+    extract_spec_base(psd, template_dir, size)
+
+
+def _spec_channel(group, size):
+    """Composite a spec channel group (Base Paint + optional Parts) to grayscale."""
+    w, h = size
+    canvas = np.zeros((h, w), np.float64)
+    base = parts = None
+    for c in group:
+        if c.name == "Base Paint":
+            base = c
+        elif c.name == "Parts":
+            parts = c
+    if base is not None:
+        b = np.array(base.topil().convert("L"))
+        x1, y1, x2, y2 = base.bbox
+        canvas[y1:y2, x1:x2] = b[: y2 - y1, : x2 - x1]
+    if parts is not None:
+        pimg = parts.topil().convert("RGBA")
+        pa = np.array(pimg)
+        pl = np.array(pimg.convert("L"))
+        alpha = pa[..., 3] / 255.0
+        x1, y1, x2, y2 = parts.bbox
+        region = canvas[y1:y2, x1:x2]
+        canvas[y1:y2, x1:x2] = region * (1 - alpha) + pl * alpha
+    return canvas.clip(0, 255).astype(np.uint8)
+
+
+def extract_spec_base(psd, template_dir: str | Path, size) -> None:
+    """Build the baseline spec map (parts + default body materials) -> spec_base.png.
+
+    Channels follow the template: R=metallic, G=roughness, B=clearcoat.
+    """
+    template_dir = Path(template_dir)
+    groups = {
+        "R": _find_layer(psd, "Red Channel Metallic"),
+        "G": _find_layer(psd, "Green Channel Roughness"),
+        "B": _find_layer(psd, "Blue Channel Clearcoat"),
+    }
+    if not all(groups.values()):
+        print("  ! Custom Spec Map group incomplete; skipping spec_base")
+        return
+    w, h = size
+    spec = np.zeros((h, w, 3), np.uint8)
+    for i, key in enumerate(("R", "G", "B")):
+        spec[..., i] = _spec_channel(groups[key], size)
+    out = template_dir / "spec_base.png"
+    Image.fromarray(spec, "RGB").save(out)
+    print(f"  spec base   -> {out}")
+
 
 def detect_number_blocks(template_dir: str | Path) -> None:
     """Find number-placement rectangles from the Number Blocks guide layer.

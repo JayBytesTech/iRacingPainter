@@ -1,0 +1,18 @@
+{
+  "schema_version": "0.1",
+  "template": "porsche_992_gt3",
+  "meta": { "name": "P5 Demo", "author": "Jay", "description": "Material finishes via spec map." },
+  "base": { "fill": { "type": "solid", "color": "#1a1a1a" } },
+  "zones": {
+    "roof": { "fill": { "type": "solid", "color": "#1a1a1a" } },
+    "rockers": { "fill": { "type": "solid", "color": "#c0c0c0" } }
+  },
+  "materials": {
+    "default": "gloss",
+    "zones": {
+      "roof": "matte",
+      "rockers": "chrome",
+      "hood": "metallic"
+    }
+  }
+}

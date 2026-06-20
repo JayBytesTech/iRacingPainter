@@ -32,7 +32,9 @@ See the PRD for full scope/architecture. Status:
 - [x] **P4 Asset library + logos** — local provider w/ licensing manifest; `logo`
       elements anchored to a zone/group centroid or explicit UV coords, with
       scale/rotation/opacity. (`assets.py`)
-- [ ] **P5 Spec-map generator** — per-zone materials → spec TGA.
+- [x] **P5 Spec-map generator** — baseline spec extracted from the template
+      (keeps parts materials) + per-zone material overrides → 24-bit spec TGA.
+      (`spec_map.py`; rendering now emits `<name>.tga` + `<name>_spec.tga`)
 - [ ] **P6 NL → spec (Claude)** — description → validated spec, end-to-end.
 - [ ] **P7 Deploy/sync** — one command to push to the iRacing PC / Trading Paints.
 
@@ -89,6 +91,11 @@ anchored to a zone/group (`"zone": "hood", "scale": 0.55`) or at explicit UV coo
 ```json
 { "type": "logo", "asset": "apex", "zone": "hood", "scale": 0.55 }
 ```
+
+**Materials** control finish via the spec map (`materials.default` + `materials.zones`,
+each one of `gloss`/`matte`/`metallic`/`chrome`). Rendering a spec emits both
+`<name>.tga` (color) and `<name>_spec.tga` (24-bit spec map), starting from the
+template's baseline so parts (carbon/glass/trim) keep their finish.
 
 ## Getting a paint in-sim
 

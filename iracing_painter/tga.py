@@ -16,12 +16,13 @@ from pathlib import Path
 from PIL import Image
 
 
-def save_tga(img: Image.Image, path: str | Path) -> Path:
-    """Save an image as an iRacing-ready 32-bit uncompressed TGA."""
+def save_tga(img: Image.Image, path: str | Path, bits: int = 32) -> Path:
+    """Save an uncompressed TGA. bits=32 -> RGBA (color), bits=24 -> RGB (spec)."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    if img.mode != "RGBA":
-        img = img.convert("RGBA")
+    target = "RGBA" if bits == 32 else "RGB"
+    if img.mode != target:
+        img = img.convert(target)
     # compression default in Pillow's TGA writer is uncompressed.
     img.save(path, format="TGA")
     return path

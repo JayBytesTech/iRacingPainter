@@ -56,15 +56,88 @@ def recolor_body(
     return Image.fromarray(arr, "RGBA")
 
 
-def render_livery(spec: dict, template_dir: str | Path, out_path: str | Path) -> Path:
-    """Render a (currently minimal) livery spec to a color TGA."""
+def paint_zones(
+    img: Image.Image,
+    template_dir: str | Path,
+    zone_colors: dict,
+    *,
+    body_color=TEMPLATE_BODY_COLOR,
+    tolerance: int = 18,
+) -> Image.Image:
+    """Recolor individual UV zones by name.
+
+    `zone_colors` maps a semantic zone name (from zones/labels.json) to a color.
+    Only pixels inside the zone that still match the template body fill are
+    repainted, so baked-in decals (number board, GT3R, PORSCHE strips) survive.
+    """
     template_dir = Path(template_dir)
-    base = template_dir / "base.png"
+    seg = np.array(Image.open(template_dir / "zones" / "segments.png"))
+    labels = json.loads((template_dir / "zones" / "labels.json").read_text())
+    name_to_ids = labels["zones"]
 
+    arr = np.array(img.convert("RGBA"))
+    rgb = arr[..., :3].astype(np.int16)
+    is_body = np.all(np.abs(rgb - np.array(body_color, np.int16)) <= tolerance, axis=-1)
+
+    for zone, color in zone_colors.items():
+        ids = name_to_ids.get(zone)
+        if not ids:
+            print(f"  ! unknown zone {zone!r} (not in labels.json)")
+            continue
+        if isinstance(color, str):
+            color = _hex_to_rgb(color)
+        zone_mask = np.isin(seg, ids) & is_body
+        for c in range(3):
+            arr[..., c][zone_mask] = color[c]
+    return Image.fromarray(arr, "RGBA")
+
+
+def render_livery(spec: dict, template_dir: str | Path, out_path: str | Path) -> Path:
+    """Render a livery spec to a color TGA.
+
+    Spec keys (v0):
+      body_color : base color for the whole car
+      zones      : {zone_name: color} overrides for specific UV zones
+
+    The body fill is identified once from the template, then split between the
+    requested zones and the leftover body. Only original body pixels are ever
+    repainted, so all baked-in decals survive.
+    """
+    template_dir = Path(template_dir)
+
+    img = Image.open(template_dir / "base.png").convert("RGBA")
+    arr = np.array(img)
+    rgb = arr[..., :3].astype(np.int16)
+    is_body = np.all(
+        np.abs(rgb - np.array(TEMPLATE_BODY_COLOR, np.int16)) <= 18, axis=-1
+    )
+
+    zones = spec.get("zones") or {}
+    painted = np.zeros(is_body.shape, dtype=bool)
+    if zones:
+        seg = np.array(Image.open(template_dir / "zones" / "segments.png"))
+        name_to_ids = json.loads(
+            (template_dir / "zones" / "labels.json").read_text()
+        )["zones"]
+        for zone, color in zones.items():
+            ids = name_to_ids.get(zone)
+            if not ids:
+                print(f"  ! unknown zone {zone!r} (not in labels.json)")
+                continue
+            color = _hex_to_rgb(color) if isinstance(color, str) else color
+            mask = np.isin(seg, ids) & is_body
+            for c in range(3):
+                arr[..., c][mask] = color[c]
+            painted |= mask
+
+    # Everything still on the original body color gets the base body color.
     body = spec.get("body_color", "#1a1a1a")
-    img = recolor_body(base, body)
+    body = _hex_to_rgb(body) if isinstance(body, str) else body
+    rest = is_body & ~painted
+    for c in range(3):
+        arr[..., c][rest] = body[c]
 
-    return save_tga(img, out_path)
+    return save_tga(Image.fromarray(arr, "RGBA"), out_path)
 
 
 if __name__ == "__main__":

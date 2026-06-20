@@ -10,5 +10,11 @@ out/
 templates/*/base.png
 templates/*/reference/
 
+# Auto-generated zone segmentation (regenerate with: python -m iracing_painter.zones <template>)
+# NOTE: labels.json is hand-authored and IS tracked.
+templates/*/zones/segments.png
+templates/*/zones/segments.json
+templates/*/zones/segments_preview.png
+
 # OS
 .DS_Store

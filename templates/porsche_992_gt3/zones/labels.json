@@ -1,0 +1,21 @@
+{
+  "_comment": "Semantic zone name -> list of segment ids from segments.json. Built from a first visual pass of the auto-segmented UV; VERIFY/EXTEND against zones/segments_preview.png. Unlisted segments are currently unnamed.",
+  "_status": "draft-v0",
+  "zones": {
+    "roof": [8],
+    "hood": [61, 62],
+    "front_bumper": [78],
+    "rocker_left": [51],
+    "rocker_right": [63],
+    "rear_wing": [43],
+    "mirror_left": [27],
+    "mirror_right": [28],
+    "rear_quarter_left": [84],
+    "rear_quarter_right": [47]
+  },
+  "_unverified": {
+    "_comment": "Large segments not yet confidently named — need Jay to identify.",
+    "big_panel_topleft": [2],
+    "central_panel": [46]
+  }
+}

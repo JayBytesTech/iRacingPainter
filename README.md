@@ -35,7 +35,9 @@ See the PRD for full scope/architecture. Status:
 - [x] **P5 Spec-map generator** — baseline spec extracted from the template
       (keeps parts materials) + per-zone material overrides → 24-bit spec TGA.
       (`spec_map.py`; rendering now emits `<name>.tga` + `<name>_spec.tga`)
-- [ ] **P6 NL → spec (Claude)** — description → validated spec, end-to-end.
+- [~] **P6 NL → spec** — done via Claude Code in-session (uses Jay's subscription,
+      no API): describe a livery → Claude authors a validated spec → render. See
+      `docs/AUTHORING.md`. Programmatic API deferred to the standalone/shared phase.
 - [ ] **P7 Deploy/sync** — one command to push to the iRacing PC / Trading Paints.
 
 ## Template facts (Porsche 992 R GT3)

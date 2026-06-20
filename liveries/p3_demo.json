@@ -1,0 +1,16 @@
+{
+  "schema_version": "0.1",
+  "template": "porsche_992_gt3",
+  "meta": { "name": "P3 Demo", "author": "Jay", "description": "Two-tone via group + racing number." },
+  "palette": { "primary": "#0b3d91", "accent": "#f2c200", "white": "#f5f5f5" },
+  "base": { "fill": { "type": "solid", "color": "#0b3d91" } },
+  "zones": {
+    "roof": { "fill": { "type": "solid", "color": "#f5f5f5" } },
+    "hood": { "fill": { "type": "solid", "color": "#f5f5f5" } },
+    "rockers": { "fill": { "type": "solid", "color": "#f2c200" } },
+    "rear": { "fill": { "type": "solid", "color": "#f2c200" } }
+  },
+  "elements": [
+    { "type": "number", "value": "24", "color": "#0b3d91", "outline": "#f5f5f5" }
+  ]
+}

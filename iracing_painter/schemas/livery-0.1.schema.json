@@ -33,12 +33,12 @@
     },
     "zones": {
       "type": "object",
-      "description": "Per-zone fill overrides. Keys must be zone names from the template's zones/labels.json.",
+      "description": "Per-zone fill overrides. Keys must be a zone OR group name from the template's zones/labels.json.",
       "additionalProperties": { "$ref": "#/$defs/surface" }
     },
     "elements": {
       "type": "array",
-      "description": "Ordered draw list (stripes/logos/numbers). Accepted in v0.1 but rendered from P3+.",
+      "description": "Ordered draw list, composited on top of fills. v0.1 renders 'number'; more element types added in later phases.",
       "items": { "$ref": "#/$defs/element" }
     },
     "materials": {
@@ -85,7 +85,19 @@
     "element": {
       "type": "object",
       "required": ["type"],
-      "properties": { "type": { "type": "string" } }
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "required": ["type", "value"],
+          "description": "Racing number rendered into the template's number blocks.",
+          "properties": {
+            "type": { "const": "number" },
+            "value": { "type": "string", "minLength": 1, "maxLength": 3 },
+            "color": { "$ref": "#/$defs/color" },
+            "outline": { "$ref": "#/$defs/color" }
+          }
+        }
+      ]
     }
   }
 }

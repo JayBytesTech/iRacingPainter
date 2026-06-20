@@ -19,6 +19,8 @@ from pathlib import Path
 
 from psd_tools import PSDImage
 from PIL import Image
+from scipy import ndimage
+import numpy as np
 
 
 def _find_layer(psd, name):
@@ -83,6 +85,41 @@ def extract(template_dir: str | Path) -> None:
     base_out = template_dir / "base.png"
     base.save(base_out)
     print(f"  base color  -> {base_out}")
+
+    # 3. Number blocks: detect the template's number-placement rectangles.
+    detect_number_blocks(template_dir)
+
+
+def detect_number_blocks(template_dir: str | Path) -> None:
+    """Find number-placement rectangles from the Number Blocks guide layer.
+
+    Writes number_blocks.json: a list of {id, bbox, rotation} where rotation is 90
+    for portrait blocks (numbers read sideways in the UV) else 0. Orientation flips
+    (mirroring / 180) are refined after in-sim calibration.
+    """
+    template_dir = Path(template_dir)
+    nb_path = template_dir / "reference" / "number_blocks.png"
+    if not nb_path.exists():
+        print("  ! no number_blocks reference; skipping number-block detection")
+        return
+    a = np.array(Image.open(nb_path).convert("RGBA"))[..., 3] > 0
+    labels, n = ndimage.label(a)
+    blocks = []
+    for i in range(1, n + 1):
+        ys, xs = np.where(labels == i)
+        if len(xs) < 200:
+            continue
+        x1, y1, x2, y2 = int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max())
+        w, h = x2 - x1, y2 - y1
+        blocks.append(
+            {"bbox": [x1, y1, x2, y2], "rotation": 90 if h > w * 1.15 else 0}
+        )
+    # Stable order: top-to-bottom, then left-to-right.
+    blocks.sort(key=lambda b: (b["bbox"][1], b["bbox"][0]))
+    for idx, b in enumerate(blocks, 1):
+        b["id"] = idx
+    (template_dir / "number_blocks.json").write_text(json.dumps(blocks, indent=2))
+    print(f"  number blocks: {len(blocks)} -> number_blocks.json")
 
 
 if __name__ == "__main__":

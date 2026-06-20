@@ -13,6 +13,13 @@
     "rear_quarter_left": [84],
     "rear_quarter_right": [47]
   },
+  "_groups_comment": "Named unions of zones for convenient multi-zone fills (seam-safe along boundaries). Usable anywhere a zone name is. DRAFT, refine with zone names.",
+  "groups": {
+    "rockers": ["rocker_left", "rocker_right"],
+    "mirrors": ["mirror_left", "mirror_right"],
+    "rear_quarters": ["rear_quarter_left", "rear_quarter_right"],
+    "rear": ["rear_quarter_left", "rear_quarter_right", "rear_wing"]
+  },
   "_unverified": {
     "_comment": "Large segments not yet confidently named — need Jay to identify.",
     "big_panel_topleft": [2],

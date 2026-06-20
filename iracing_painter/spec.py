@@ -53,29 +53,33 @@ def validate(spec: dict, templates_root: Path) -> tuple[Path, list[str]]:
 
     # 3. Semantic — referenced zone names must exist in the template's labels.
     labels_path = template_dir / "zones" / "labels.json"
-    valid_zones: set[str] = set()
+    valid_targets: set[str] = set()
     if labels_path.exists():
-        valid_zones = set(json.loads(labels_path.read_text()).get("zones", {}))
+        labels = json.loads(labels_path.read_text())
+        valid_targets = set(labels.get("zones", {})) | set(labels.get("groups", {}))
     referenced = set(spec.get("zones", {})) | set(
         spec.get("materials", {}).get("zones", {})
     )
     if labels_path.exists():
-        unknown = sorted(referenced - valid_zones)
+        unknown = sorted(referenced - valid_targets)
         if unknown:
             raise SpecError(
-                f"unknown zone(s) {unknown} for template {spec['template']!r}. "
-                f"Valid zones: {sorted(valid_zones)}"
+                f"unknown zone/group {unknown} for template {spec['template']!r}. "
+                f"Valid: {sorted(valid_targets)}"
             )
     elif referenced:
         warnings.append(
             f"template has no zones/labels.json yet; cannot verify zones {sorted(referenced)}"
         )
 
-    # 4. Soft — features accepted by the contract but not rendered in v0.1.
-    if spec.get("elements"):
-        warnings.append(
-            f"{len(spec['elements'])} element(s) present but not rendered in v0.1 (P3+)"
-        )
+    # 4. Soft — element types and features not yet rendered.
+    implemented_elements = {"number"}
+    for el in spec.get("elements", []):
+        if el.get("type") not in implemented_elements:
+            warnings.append(f"element type {el.get('type')!r} not rendered yet")
+    if "number" in {e.get("type") for e in spec.get("elements", [])}:
+        if not (template_dir / "number_blocks.json").exists():
+            warnings.append("number element present but template has no number_blocks.json")
     if spec.get("materials"):
         warnings.append("materials present but spec-map generation lands in P5")
 

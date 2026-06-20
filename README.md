@@ -26,7 +26,9 @@ See the PRD for full scope/architecture. Status:
 - [x] **P1a Zone map** — UV auto-segmentation + per-zone painting. (`zones.py`, `calibrate.py`)
 - [ ] **P1b Verify zones** — calibration screenshots → finalize `labels.json`. *(awaiting iRacing PC)*
 - [x] **P2 Spec schema v0.1 + validator** — the contract; renderer consumes validated specs. (`schemas/`, `spec.py`)
-- [ ] **P3 Renderer features** — stripes / two-tone splits across zones; number plates.
+- [~] **P3 Renderer features** — seam-safe done: zone groups (two-tone along
+      boundaries) + number plates into template number blocks. Cross-panel stripes/
+      curves deferred to the projection milestone (see PRD §12).
 - [ ] **P4 Asset library + logos** — SVG/PNG logo placement by anchor.
 - [ ] **P5 Spec-map generator** — per-zone materials → spec TGA.
 - [ ] **P6 NL → spec (Claude)** — description → validated spec, end-to-end.
@@ -70,8 +72,12 @@ Minimal example:
 ```
 
 Every fill is an object so new fill types (gradient/texture/generated) are additive.
-v0.1 renders solid `base` + `zones`; `elements` and `materials` are accepted by the
-contract but rendered in later phases.
+v0.1 renders: solid `base`, `zones` (a zone *or group* name from `labels.json`), and
+`number` elements (drawn into the template's number blocks). `materials` and other
+element types are accepted/rendered in later phases.
+
+Zone groups (e.g. `rockers`, `rear`) are defined in `zones/labels.json` and usable
+anywhere a zone name is.
 
 ## Getting a paint in-sim
 

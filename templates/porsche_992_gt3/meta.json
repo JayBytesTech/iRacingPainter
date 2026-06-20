@@ -1,0 +1,28 @@
+{
+  "id": "porsche_992_gt3",
+  "name": "Porsche 992 R GT3",
+  "source_psd": "/home/jaybytestech/Downloads/169_template_992R/Porsche 992r GT3.psd",
+  "resolution": [2048, 2048],
+
+  "export": {
+    "comment": "Layers/groups composited into the final color TGA. Everything in 'Turn Off Before Exporting TGA' is a guide and must be excluded.",
+    "color_group": "Paintable Area",
+    "guide_group": "Turn Off Before Exporting TGA"
+  },
+
+  "spec_map": {
+    "comment": "iRacing spec map channels, confirmed from the PSD 'Custom Spec Map' group.",
+    "red": "metallic",
+    "green": "roughness",
+    "blue": "clearcoat"
+  },
+
+  "reference_layers": {
+    "comment": "Guide layers extracted for zone-mapping and placement.",
+    "uv_wireframe": "Wire",
+    "paint_mask": "Mask",
+    "sponsor_blocks": "Sponsor Blocks",
+    "number_blocks": "Number Blocks",
+    "mandatory_decals": "Car_Mandatory"
+  }
+}

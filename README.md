@@ -39,6 +39,9 @@ See the PRD for full scope/architecture. Status:
       no API): describe a livery → Claude authors a validated spec → render. See
       `docs/AUTHORING.md`. Programmatic API deferred to the standalone/shared phase.
 - [ ] **P7 Deploy/sync** — one command to push to the iRacing PC / Trading Paints.
+- [~] **P8 Web portal + API** — MVP done: FastAPI service (`api.py`) + React/Vite
+      portal (`portal/`) for coloring the car with live preview + TGA export. Next:
+      logo upload/placement, numbers, materials in the UI; then a custom MCP.
 
 ## Template facts (Porsche 992 R GT3)
 
@@ -98,6 +101,26 @@ anchored to a zone/group (`"zone": "hood", "scale": 0.55`) or at explicit UV coo
 each one of `gloss`/`matte`/`metallic`/`chrome`). Rendering a spec emits both
 `<name>.tga` (color) and `<name>_spec.tga` (24-bit spec map), starting from the
 template's baseline so parts (carbon/glass/trim) keep their finish.
+
+## Web portal
+
+A local React/Vite portal over a FastAPI service (the same engine; the spec stays
+the contract). MVP: base + per-zone/group color pickers, live preview, TGA export.
+
+```bash
+# 1. backend (from project root, venv active)
+uvicorn iracing_painter.api:app --reload          # serves API on :8000
+
+# 2a. dev frontend (hot reload, proxies /api -> :8000)
+cd portal && npm install && npm run dev            # opens :5173
+
+# 2b. OR build once and let the API serve it at :8000
+cd portal && npm run build                         # then just run uvicorn
+```
+
+API endpoints: `GET /api/templates/{id}`, `GET /api/assets`, `POST /api/validate`,
+`POST /api/render` (PNG), `POST /api/export` (zip of TGAs). The same API will back
+the planned MCP server.
 
 ## Getting a paint in-sim
 

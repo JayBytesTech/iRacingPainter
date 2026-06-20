@@ -26,3 +26,7 @@ templates/*/calibration/
 
 # Local Claude Code settings
 .claude/
+
+# Node / portal build
+portal/node_modules/
+portal/dist/

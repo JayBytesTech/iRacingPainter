@@ -37,7 +37,13 @@ def _surface_color(surface: dict) -> tuple[int, int, int]:
 
 
 def render_livery(spec: dict, template_dir: str | Path, out_path: str | Path) -> Path:
-    """Render a validated v0.1 livery spec to a color TGA."""
+    """Render a validated v0.1 livery spec to a color TGA file."""
+    img = build_color_image(spec, template_dir)
+    return save_tga(img, out_path)
+
+
+def build_color_image(spec: dict, template_dir: str | Path) -> Image.Image:
+    """Build the color livery as an in-memory RGBA image (no file write)."""
     template_dir = Path(template_dir)
     meta = json.loads((template_dir / "meta.json").read_text())
     body_template_color = np.array(meta["body_fill_color"], np.int16)
@@ -80,7 +86,7 @@ def render_livery(spec: dict, template_dir: str | Path, out_path: str | Path) ->
         elif kind == "logo":
             _draw_logo(img, template_dir, el, assets)
 
-    return save_tga(img, out_path)
+    return img
 
 
 def _zone_bbox(template_dir: Path, target: str):

@@ -38,8 +38,22 @@ Validated against `iracing_painter/schemas/livery-0.1.schema.json`.
 }
 ```
 - Required: `schema_version` (`"0.1"`), `template`, `base`.
-- Every fill is an object (`{"type":"solid","color":...}`) — only `solid` for now.
 - Colors are `#rrggbb`.
+
+### Fill types
+Every fill is an object with a `type`. Available on **any** surface (`base` or a zone)
+unless noted:
+- `solid` — `{"type":"solid","color":"#rrggbb"}`.
+- `gradient` — linear multi-stop gradient across the surface (whole body for `base`,
+  one panel for a zone): `{"type":"gradient","colors":["#a","#b","#c"],"angle":90,"stops":[0,0.5,1]}`.
+  `stops` optional (defaults to even spacing); `angle` in degrees.
+- `stripes` — repeating equal-width bands cycling through `colors`:
+  `{"type":"stripes","colors":["#fff","#c00"],"width":120,"angle":30,"offset":0}`.
+  On `base` they're drawn in the car's global **design space** (seam-aligned across
+  the connected front/sides panels); on a **zone** they're confined to that panel
+  (UV-local). `width` is in pixels.
+- `pattern` — **base only** — a stock design recolored with up to 3 colors:
+  `{"type":"pattern","pattern":"007","colors":["#a","#b","#c"]}`.
 
 ## Available for `porsche_992_gt3`
 **Zones** (draft-v1 — audited via number blocks/decals/seam graph; sides still

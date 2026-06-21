@@ -54,6 +54,8 @@ def build_color_image(spec: dict, template_dir: str | Path) -> Image.Image:
     is_body = np.all(np.abs(rgb - body_template_color) <= BODY_MATCH_TOLERANCE, axis=-1)
 
     # Zone overrides first; track what they cover so the base only fills the rest.
+    # Zone stripes are UV-local (confined to the panel); base stripes are global
+    # design-space (seam-aligned across panels).
     painted = np.zeros(is_body.shape, dtype=bool)
     zones = spec.get("zones") or {}
     if zones:
@@ -63,19 +65,14 @@ def build_color_image(spec: dict, template_dir: str | Path) -> Image.Image:
             ids = resolve(target)
             if not ids:  # validated upstream, but stay defensive
                 continue
-            color = _surface_color(surface)
             mask = np.isin(seg, ids) & is_body
-            for c in range(3):
-                arr[..., c][mask] = color[c]
+            _apply_fill(arr, mask, surface["fill"], template_dir, design_space=False)
             painted |= mask
 
-    # Base fill on every remaining original-body pixel: a solid color, or a
-    # recolored stock pattern mapped across the whole body.
+    # Base fill on every remaining original-body pixel.
     rest = is_body & ~painted
     base_fill = spec["base"]["fill"]
-    if base_fill.get("type") == "stripes":
-        _fill_stripes(arr, rest, template_dir, base_fill)
-    elif base_fill.get("type") == "pattern":
+    if base_fill.get("type") == "pattern":
         from .patterns import load_pattern, manifest_entry, recolor
 
         pat = load_pattern(template_dir, base_fill["pattern"])
@@ -86,9 +83,7 @@ def build_color_image(spec: dict, template_dir: str | Path) -> Image.Image:
         for c in range(3):
             arr[..., c][rest] = pat[..., c][rest]
     else:
-        base_color = _surface_color(spec["base"])
-        for c in range(3):
-            arr[..., c][rest] = base_color[c]
+        _apply_fill(arr, rest, base_fill, template_dir, design_space=True)
 
     # Elements draw on top of all fills (they're decals, not body paint),
     # in spec order.
@@ -104,38 +99,75 @@ def build_color_image(spec: dict, template_dir: str | Path) -> Image.Image:
     return img
 
 
-def _fill_stripes(arr, mask, template_dir: Path, fill: dict) -> None:
-    """Paint repeating cross-panel stripes over `mask` using the design-space layout.
+def _apply_fill(arr, mask, fill: dict, template_dir: Path, design_space: bool) -> None:
+    """Paint a fill over a boolean `mask`. Supports solid, gradient, and stripes.
 
-    Each body pixel is mapped into the car's global design space via its panel's
-    transform (so stripes line up across seams); panels not in the layout fall back
-    to raw UV coords (still striped, just not cross-aligned).
+    `design_space` only affects stripes: True maps pixels into the car's global
+    design space (seam-aligned across panels, for the base); False uses raw UV
+    (stripes confined to the masked panel).
     """
-    from .layout import load_layout
+    kind = fill.get("type", "solid")
+    if kind == "gradient":
+        _fill_gradient(arr, mask, fill)
+    elif kind == "stripes":
+        _fill_stripes(arr, mask, template_dir, fill, design_space)
+    else:  # solid (default)
+        color = _hex_to_rgb(fill["color"])
+        for c in range(3):
+            arr[..., c][mask] = color[c]
 
+
+def _fill_gradient(arr, mask, fill: dict) -> None:
+    """Linear multi-stop gradient across the masked region's extent, at `angle`."""
+    ys, xs = np.where(mask)
+    if len(xs) == 0:
+        return
+    colors = np.array([_hex_to_rgb(c) for c in fill["colors"]], float)
+    n = len(colors)
+    stops = fill.get("stops")
+    if not stops or len(stops) != n:
+        stops = list(np.linspace(0.0, 1.0, n))
+    ang = np.deg2rad(float(fill.get("angle", 0.0)))
+    proj = np.cos(ang) * xs + np.sin(ang) * ys
+    lo, hi = proj.min(), proj.max()
+    t = (proj - lo) / (hi - lo) if hi > lo else np.zeros_like(proj)
+    for c in range(3):
+        arr[..., c][ys, xs] = np.interp(t, stops, colors[:, c]).round().astype(np.uint8)
+
+
+def _fill_stripes(arr, mask, template_dir: Path, fill: dict, design_space: bool) -> None:
+    """Repeating equal-width stripe bands over `mask`.
+
+    design_space=True maps each pixel into the car's global design space via its
+    panel transform (so stripes line up across seams); otherwise raw UV is used
+    (stripes stay local to the masked panel).
+    """
     colors = [np.array(_hex_to_rgb(c), np.uint8) for c in fill["colors"]]
     width = float(fill.get("width", 150.0))
     ang = np.deg2rad(float(fill.get("angle", 0.0)))
     offset = float(fill.get("offset", 0.0))
 
-    layout = load_layout(template_dir)
     ys, xs = np.where(mask)
     if len(xs) == 0:
         return
     dx = xs.astype(np.float64)
     dy = ys.astype(np.float64)
 
-    if layout:
-        seg = np.array(Image.open(template_dir / "zones" / "segments.png"))
-        sids = seg[ys, xs]
-        for sid in np.unique(sids):
-            T = layout.get(int(sid))
-            if T is None:
-                continue
-            m = sids == sid
-            pts = np.stack([dx[m], dy[m], np.ones(m.sum())])
-            d = T @ pts
-            dx[m], dy[m] = d[0], d[1]
+    if design_space:
+        from .layout import load_layout
+
+        layout = load_layout(template_dir)
+        if layout:
+            seg = np.array(Image.open(template_dir / "zones" / "segments.png"))
+            sids = seg[ys, xs]
+            for sid in np.unique(sids):
+                T = layout.get(int(sid))
+                if T is None:
+                    continue
+                m = sids == sid
+                pts = np.stack([dx[m], dy[m], np.ones(m.sum())])
+                d = T @ pts
+                dx[m], dy[m] = d[0], d[1]
 
     proj = np.cos(ang) * dx + np.sin(ang) * dy + offset
     band = np.floor(proj / width).astype(np.int64) % len(colors)

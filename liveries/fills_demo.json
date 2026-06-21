@@ -1,0 +1,16 @@
+{
+  "schema_version": "0.1",
+  "template": "porsche_992_gt3",
+  "meta": {
+    "name": "Fills Demo",
+    "description": "Richer fills: a body gradient, a zone gradient on the roof, within-panel stripes on the hood, solid doors."
+  },
+  "base": {
+    "fill": { "type": "gradient", "colors": ["#0b132b", "#1c3f8f", "#c8102e"], "angle": 90 }
+  },
+  "zones": {
+    "roof": { "fill": { "type": "gradient", "colors": ["#000000", "#c8102e"], "angle": 0 } },
+    "hood": { "fill": { "type": "stripes", "colors": ["#f2f2f2", "#0b132b"], "width": 60, "angle": 20 } },
+    "doors": { "fill": { "type": "solid", "color": "#c8102e" } }
+  }
+}

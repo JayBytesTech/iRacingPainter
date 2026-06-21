@@ -91,7 +91,7 @@
         {
           "additionalProperties": false,
           "required": ["type", "colors"],
-          "description": "Cross-panel stripes drawn in the car's global design space (seam-aligned). Only valid on 'base'. Repeating equal-width bands cycling through colors.",
+          "description": "Repeating equal-width stripe bands cycling through colors. On 'base' they're drawn in the car's global design space (seam-aligned across panels); on a zone they're confined to that panel (UV-local).",
           "properties": {
             "type": { "const": "stripes" },
             "colors": {
@@ -103,6 +103,27 @@
             "width": { "type": "number", "exclusiveMinimum": 0 },
             "angle": { "type": "number" },
             "offset": { "type": "number" }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["type", "colors"],
+          "description": "Linear multi-stop gradient across the surface (the whole body for 'base', or a single panel for a zone), in UV space.",
+          "properties": {
+            "type": { "const": "gradient" },
+            "colors": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/color" },
+              "minItems": 2,
+              "maxItems": 6
+            },
+            "stops": {
+              "type": "array",
+              "items": { "type": "number", "minimum": 0, "maximum": 1 },
+              "minItems": 2,
+              "maxItems": 6
+            },
+            "angle": { "type": "number" }
           }
         }
       ]

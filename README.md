@@ -39,9 +39,23 @@ See the PRD for full scope/architecture. Status:
       no API): describe a livery → Claude authors a validated spec → render. See
       `docs/AUTHORING.md`. Programmatic API deferred to the standalone/shared phase.
 - [ ] **P7 Deploy/sync** — one command to push to the iRacing PC / Trading Paints.
-- [~] **P8 Web portal + API** — MVP done: FastAPI service (`api.py`) + React/Vite
-      portal (`portal/`) for coloring the car with live preview + TGA export. Next:
-      logo upload/placement, numbers, materials in the UI; then a custom MCP.
+- [x] **P8 Web portal + API** — FastAPI service (`api.py`) + React/Vite portal
+      (`portal/`): the engine behind a live, app-like builder.
+- [x] **P9 Stock patterns** — the template's built-in iRacing designs as
+      recolorable presets (R/G/B channel masks → 3 colors). (`patterns.py`)
+- [x] **P10–P12 Full portal builder** — finish (materials, racing number) +
+      logo upload/placement + spec-map preview toggle + click-a-panel-to-select
+      and click-to-place logos. The portal now drives most of the spec by mouse.
+- [x] **P13 Seam discovery** — recover inter-panel seams from the stock patterns
+      (structured-light fingerprint matching + RANSAC), no 3D model or screenshots.
+      (`seams.py`)
+- [x] **P14 Label audit** — number-blocks + decals + seam graph → corrected
+      `zones/labels.json` (draft-v1); remaining sides flagged for in-sim check.
+- [~] **P15 Cross-panel designs** — global design-space `layout.py` + a `stripes`
+      fill that lines up across seams. Works *within* connected panel groups
+      (front/sides); car-wide alignment is parked on the calibration screenshots.
+- [ ] **MCP server** — drive the whole engine as Claude tools over the same API.
+      *(planned next)*
 
 ## Template facts (Porsche 992 R GT3)
 

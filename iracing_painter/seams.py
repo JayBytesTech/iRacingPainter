@@ -117,10 +117,10 @@ def _ransac_affine(src, dst, iters=300, thresh=6.0, rng=None):
 def build_seam_graph(
     template_dir: str | Path,
     min_size: int = 1500,
-    match_dist: float = 80.0,
-    ratio: float = 0.8,
-    min_inliers: int = 20,
-    inlier_thresh: float = 6.0,
+    match_dist: float = 110.0,
+    ratio: float = 0.85,
+    min_inliers: int = 12,
+    inlier_thresh: float = 8.0,
 ) -> list[dict]:
     """Discover seams between panels. Returns a list of seam records."""
     template_dir = Path(template_dir)

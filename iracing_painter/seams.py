@@ -51,22 +51,41 @@ def _load_pattern_stack(template_dir: Path) -> np.ndarray:
 
 
 def _inward_ring(mask: np.ndarray, lo: int = 3, hi: int = 7) -> np.ndarray:
-    """Pixels forming a ring just inside a segment's edge (avoids seam-line AA)."""
+    """Pixels forming a ring just inside a segment's edge (avoids seam-line AA).
+
+    Returns coords in (x, y) order so transforms/samples are consumer-friendly.
+    """
     ring = ndimage.binary_erosion(mask, iterations=lo) & ~ndimage.binary_erosion(mask, iterations=hi)
     ys, xs = np.where(ring)
-    return np.stack([ys, xs], axis=1)
+    return np.stack([xs, ys], axis=1)
 
 
 def _fingerprints(stack: np.ndarray, coords: np.ndarray) -> np.ndarray:
-    """(N,H,W,3) + (M,2) coords -> (M, N*3) float32 fingerprints."""
-    sampled = stack[:, coords[:, 0], coords[:, 1], :]  # (N, M, 3)
+    """(N,H,W,3) + (M,2) (x,y) coords -> (M, N*3) float32 fingerprints."""
+    sampled = stack[:, coords[:, 1], coords[:, 0], :]  # index [y, x]; (N, M, 3)
     return sampled.transpose(1, 0, 2).reshape(len(coords), -1).astype(np.float32)
 
 
-def _fit_affine(src: np.ndarray, dst: np.ndarray):
-    """Least-squares affine (2x3) mapping src->dst; returns (M, residuals)."""
-    X = np.hstack([src.astype(float), np.ones((len(src), 1))])
-    M, _, _, _ = np.linalg.lstsq(X, dst.astype(float), rcond=None)  # (3,2)
+def _fit_similarity(src: np.ndarray, dst: np.ndarray):
+    """Umeyama similarity (rotation + uniform scale + translation, reflection
+    allowed) mapping src->dst. Returns (M 3x2 with X=[x,y,1] @ M = dst, residuals).
+
+    iRacing UV islands keep uniform texel density, so adjacent panels are related
+    by a similarity (not a general affine) — this avoids shear/anisotropic stretch
+    that would distort a design across elongated panels, and supports mirrored seams.
+    """
+    src = src.astype(float); dst = dst.astype(float)
+    mu_s, mu_d = src.mean(0), dst.mean(0)
+    sc, dc = src - mu_s, dst - mu_d
+    cov = (dc.T @ sc) / len(src)
+    U, S, Vt = np.linalg.svd(cov)
+    R = U @ Vt  # reflection allowed (no det correction) -> handles mirrored panels
+    var_s = (sc ** 2).sum() / len(src)
+    scale = S.sum() / var_s if var_s > 1e-9 else 1.0
+    A = scale * R                       # 2x2 linear part (dst = A @ src + t)
+    t = mu_d - A @ mu_s
+    M = np.vstack([A.T, t])             # (3,2): [x,y,1] @ M = dst
+    X = np.hstack([src, np.ones((len(src), 1))])
     resid = np.sqrt(((X @ M - dst) ** 2).sum(1))
     return M, resid
 
@@ -77,22 +96,20 @@ def _ransac_affine(src, dst, iters=300, thresh=6.0, rng=None):
     n = len(src)
     if n < 6:
         return None, None
+    X = np.hstack([src.astype(float), np.ones((n, 1))])
     best_inl = None
     for _ in range(iters):
         idx = rng.choice(n, size=3, replace=False)
         try:
-            M, _ = _fit_affine(src[idx], dst[idx])
+            M, _ = _fit_similarity(src[idx], dst[idx])
         except np.linalg.LinAlgError:
             continue
-        X = np.hstack([src.astype(float), np.ones((n, 1))])
-        resid = np.sqrt(((X @ M - dst) ** 2).sum(1))
-        inl = resid < thresh
+        inl = np.sqrt(((X @ M - dst) ** 2).sum(1)) < thresh
         if best_inl is None or inl.sum() > best_inl.sum():
             best_inl = inl
     if best_inl is None or best_inl.sum() < 6:
         return None, None
-    M, _ = _fit_affine(src[best_inl], dst[best_inl])  # refit on inliers
-    X = np.hstack([src.astype(float), np.ones((n, 1))])
+    M, _ = _fit_similarity(src[best_inl], dst[best_inl])  # refit on inliers
     inl = np.sqrt(((X @ M - dst) ** 2).sum(1)) < thresh
     return M, inl
 
@@ -144,11 +161,11 @@ def build_seam_graph(
             if M is None or inl.sum() < min_inliers:
                 continue
             src_i, dst_i = src[inl], dst[inl]
-            resid = float(np.median(_fit_affine(src_i, dst_i)[1]))
+            resid = float(np.median(_fit_similarity(src_i, dst_i)[1]))
             # store a handful of sample correspondences (x,y order) for sanity/preview
             step = max(1, len(src_i) // 8)
             samples = [
-                [int(s[1]), int(s[0]), int(t[1]), int(t[0])]
+                [int(s[0]), int(s[1]), int(t[0]), int(t[1])]  # (ax, ay, bx, by)
                 for s, t in zip(src_i[::step], dst_i[::step])
             ]
             seams.append({

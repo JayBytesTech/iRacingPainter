@@ -73,7 +73,9 @@ def build_color_image(spec: dict, template_dir: str | Path) -> Image.Image:
     # recolored stock pattern mapped across the whole body.
     rest = is_body & ~painted
     base_fill = spec["base"]["fill"]
-    if base_fill.get("type") == "pattern":
+    if base_fill.get("type") == "stripes":
+        _fill_stripes(arr, rest, template_dir, base_fill)
+    elif base_fill.get("type") == "pattern":
         from .patterns import load_pattern, manifest_entry, recolor
 
         pat = load_pattern(template_dir, base_fill["pattern"])
@@ -100,6 +102,47 @@ def build_color_image(spec: dict, template_dir: str | Path) -> Image.Image:
             _draw_logo(img, template_dir, el, assets)
 
     return img
+
+
+def _fill_stripes(arr, mask, template_dir: Path, fill: dict) -> None:
+    """Paint repeating cross-panel stripes over `mask` using the design-space layout.
+
+    Each body pixel is mapped into the car's global design space via its panel's
+    transform (so stripes line up across seams); panels not in the layout fall back
+    to raw UV coords (still striped, just not cross-aligned).
+    """
+    from .layout import load_layout
+
+    colors = [np.array(_hex_to_rgb(c), np.uint8) for c in fill["colors"]]
+    width = float(fill.get("width", 150.0))
+    ang = np.deg2rad(float(fill.get("angle", 0.0)))
+    offset = float(fill.get("offset", 0.0))
+
+    layout = load_layout(template_dir)
+    ys, xs = np.where(mask)
+    if len(xs) == 0:
+        return
+    dx = xs.astype(np.float64)
+    dy = ys.astype(np.float64)
+
+    if layout:
+        seg = np.array(Image.open(template_dir / "zones" / "segments.png"))
+        sids = seg[ys, xs]
+        for sid in np.unique(sids):
+            T = layout.get(int(sid))
+            if T is None:
+                continue
+            m = sids == sid
+            pts = np.stack([dx[m], dy[m], np.ones(m.sum())])
+            d = T @ pts
+            dx[m], dy[m] = d[0], d[1]
+
+    proj = np.cos(ang) * dx + np.sin(ang) * dy + offset
+    band = np.floor(proj / width).astype(np.int64) % len(colors)
+    for i, col in enumerate(colors):
+        sel = band == i
+        for c in range(3):
+            arr[..., c][ys[sel], xs[sel]] = col[c]
 
 
 def _zone_bbox(template_dir: Path, target: str):

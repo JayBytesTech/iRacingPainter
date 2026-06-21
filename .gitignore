@@ -17,8 +17,10 @@ templates/*/number_blocks.json
 templates/*/zones/segments.png
 templates/*/zones/segments.json
 templates/*/zones/segments_preview.png
-# Auto-generated seam graph (regenerate with: python -m iracing_painter.seams <template>)
+# Auto-generated seam graph + design-space layout
+# (regenerate with: python -m iracing_painter.seams <template> ; then .layout)
 templates/*/zones/seams.json
+templates/*/zones/layout.json
 
 # Auto-generated calibration skins (regenerate with: python -m iracing_painter.calibrate <template>)
 templates/*/calibration/

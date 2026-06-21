@@ -87,6 +87,23 @@
               "maxItems": 3
             }
           }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["type", "colors"],
+          "description": "Cross-panel stripes drawn in the car's global design space (seam-aligned). Only valid on 'base'. Repeating equal-width bands cycling through colors.",
+          "properties": {
+            "type": { "const": "stripes" },
+            "colors": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/color" },
+              "minItems": 2,
+              "maxItems": 6
+            },
+            "width": { "type": "number", "exclusiveMinimum": 0 },
+            "angle": { "type": "number" },
+            "offset": { "type": "number" }
+          }
         }
       ]
     },

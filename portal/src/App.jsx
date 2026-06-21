@@ -6,7 +6,11 @@ export default function App() {
   const [meta, setMeta] = useState(null)
   const [name, setName] = useState('My Livery')
   const [baseColor, setBaseColor] = useState('#1a1a1a')
-  // Stock pattern: null = plain solid base. Otherwise an id from the manifest.
+  // Base design mode: 'solid' | 'gradient' (pattern is chosen via the gallery).
+  const [baseMode, setBaseMode] = useState('solid')
+  const [gradColors, setGradColors] = useState(['#0b132b', '#c8102e'])
+  const [gradAngle, setGradAngle] = useState(90)
+  // Stock pattern: null = no pattern. Otherwise an id from the manifest.
   const [patterns, setPatterns] = useState([])
   const [pattern, setPattern] = useState(null)
   const [patColors, setPatColors] = useState(['#0a1f44', '#f2f2f2', '#b11226'])
@@ -78,6 +82,8 @@ export default function App() {
       baseFill = activePattern.recolor
         ? { type: 'pattern', pattern: activePattern.id, colors: patColors }
         : { type: 'pattern', pattern: activePattern.id, colors: ['#000000'] }
+    } else if (baseMode === 'gradient') {
+      baseFill = { type: 'gradient', colors: gradColors, angle: gradAngle }
     } else {
       baseFill = { type: 'solid', color: baseColor }
     }
@@ -123,7 +129,7 @@ export default function App() {
     if (elements.length) s.elements = elements
 
     return s
-  }, [name, baseColor, overrides, activePattern, patColors, defaultMaterial, zoneMaterials, number, logos])
+  }, [name, baseColor, baseMode, gradColors, gradAngle, overrides, activePattern, patColors, defaultMaterial, zoneMaterials, number, logos])
 
   // Debounced live preview.
   useEffect(() => {
@@ -287,7 +293,7 @@ export default function App() {
             <label>Livery name</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
-          {!activePattern && (
+          {!activePattern && baseMode === 'solid' && (
             <div className="field swatch-base">
               <label>Body (base) color</label>
               <input type="color" value={baseColor} onChange={(e) => setBaseColor(e.target.value)} />
@@ -307,11 +313,19 @@ export default function App() {
           <h2>Design</h2>
           <div className="pattern-grid">
             <button
-              className={`pattern-tile ${activePattern ? '' : 'sel'}`}
-              onClick={() => setPattern(null)}
+              className={`pattern-tile ${!activePattern && baseMode === 'solid' ? 'sel' : ''}`}
+              onClick={() => { setPattern(null); setBaseMode('solid') }}
               title="Solid color"
             >
               <span className="pattern-none">Solid</span>
+            </button>
+            <button
+              className={`pattern-tile ${!activePattern && baseMode === 'gradient' ? 'sel' : ''}`}
+              onClick={() => { setPattern(null); setBaseMode('gradient') }}
+              title="Gradient"
+              style={{ background: `linear-gradient(135deg, ${gradColors[0]}, ${gradColors[1]})` }}
+            >
+              <span className="pattern-none" style={{ color: '#fff', mixBlendMode: 'difference' }}>Gradient</span>
             </button>
             {patterns.map((p) => (
               <button
@@ -347,6 +361,30 @@ export default function App() {
           )}
           {activePattern && !activePattern.recolor && (
             <p className="note">{activePattern.name} has fixed colors (baked design).</p>
+          )}
+
+          {!activePattern && baseMode === 'gradient' && (
+            <>
+              <div className="pattern-colors">
+                {gradColors.map((c, i) => (
+                  <div className="field swatch-base" key={i}>
+                    <label>{i === 0 ? 'From' : 'To'}</label>
+                    <input
+                      type="color"
+                      value={c}
+                      onChange={(e) =>
+                        setGradColors((cs) => cs.map((x, j) => (j === i ? e.target.value : x)))
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+              <label className="slider">
+                Angle {gradAngle}°
+                <input type="range" min="0" max="180" step="5" value={gradAngle}
+                  onChange={(e) => setGradAngle(parseInt(e.target.value))} />
+              </label>
+            </>
           )}
         </div>
 

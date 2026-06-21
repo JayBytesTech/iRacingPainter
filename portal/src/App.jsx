@@ -12,7 +12,15 @@ export default function App() {
   const [patColors, setPatColors] = useState(['#0a1f44', '#f2f2f2', '#b11226'])
   // overrides: { [zoneOrGroup]: { enabled: bool, color: '#rrggbb' } }
   const [overrides, setOverrides] = useState({})
+  // Finish: whole-car default + per-zone overrides ('default' = inherit).
+  const [defaultMaterial, setDefaultMaterial] = useState('gloss')
+  const [zoneMaterials, setZoneMaterials] = useState({})
+  // Racing number element.
+  const [number, setNumber] = useState({
+    enabled: false, value: '24', color: '#ffffff', outlineEnabled: false, outline: '#101010',
+  })
   const [preview, setPreview] = useState(null)
+  const [view, setView] = useState('color') // 'color' | 'spec'
   const [error, setError] = useState(null)
   const [warnings, setWarnings] = useState([])
   const [loading, setLoading] = useState(false)
@@ -57,8 +65,28 @@ export default function App() {
       base: { fill: baseFill },
     }
     if (Object.keys(zones).length) s.zones = zones
+
+    // Materials: emit default only when it differs from the engine baseline.
+    const materials = {}
+    if (defaultMaterial !== 'gloss') materials.default = defaultMaterial
+    const zmats = {}
+    for (const [k, v] of Object.entries(zoneMaterials)) {
+      if (v && v !== 'default') zmats[k] = v
+    }
+    if (Object.keys(zmats).length) materials.zones = zmats
+    if (Object.keys(materials).length) s.materials = materials
+
+    // Elements: racing number.
+    const elements = []
+    if (number.enabled && number.value.trim()) {
+      const el = { type: 'number', value: number.value.trim(), color: number.color }
+      if (number.outlineEnabled) el.outline = number.outline
+      elements.push(el)
+    }
+    if (elements.length) s.elements = elements
+
     return s
-  }, [name, baseColor, overrides, activePattern, patColors])
+  }, [name, baseColor, overrides, activePattern, patColors, defaultMaterial, zoneMaterials, number])
 
   // Debounced live preview.
   useEffect(() => {
@@ -67,7 +95,7 @@ export default function App() {
     timer.current = setTimeout(async () => {
       setLoading(true)
       try {
-        const res = await fetch('/api/render', {
+        const res = await fetch(`/api/render?view=${view}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(spec),
@@ -99,13 +127,16 @@ export default function App() {
       setLoading(false)
     }, 250)
     return () => clearTimeout(timer.current)
-  }, [spec, meta])
+  }, [spec, meta, view])
 
   function toggle(key) {
     setOverrides((o) => ({ ...o, [key]: { ...o[key], enabled: !o[key].enabled } }))
   }
   function setColor(key, color) {
     setOverrides((o) => ({ ...o, [key]: { ...o[key], color, enabled: true } }))
+  }
+  function setMaterial(key, mat) {
+    setZoneMaterials((m) => ({ ...m, [key]: mat }))
   }
 
   async function exportTgas() {
@@ -149,6 +180,14 @@ export default function App() {
               <input type="color" value={baseColor} onChange={(e) => setBaseColor(e.target.value)} />
             </div>
           )}
+          <div className="field">
+            <label>Finish (whole car)</label>
+            <select value={defaultMaterial} onChange={(e) => setDefaultMaterial(e.target.value)}>
+              {meta.materials.map((mt) => (
+                <option key={mt} value={mt}>{mt}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="section">
@@ -199,16 +238,65 @@ export default function App() {
         </div>
 
         <div className="section">
+          <h2>Number</h2>
+          <div className="row">
+            <input
+              type="checkbox"
+              checked={number.enabled}
+              onChange={() => setNumber((n) => ({ ...n, enabled: !n.enabled }))}
+            />
+            <span className="name">Show number</span>
+          </div>
+          {number.enabled && (
+            <>
+              <div className="field">
+                <label>Number (1–3 chars)</label>
+                <input
+                  type="text"
+                  maxLength={3}
+                  value={number.value}
+                  onChange={(e) => setNumber((n) => ({ ...n, value: e.target.value }))}
+                />
+              </div>
+              <div className="row">
+                <span className="name">Color</span>
+                <input
+                  type="color"
+                  value={number.color}
+                  onChange={(e) => setNumber((n) => ({ ...n, color: e.target.value }))}
+                />
+              </div>
+              <div className={`row ${number.outlineEnabled ? '' : 'off'}`}>
+                <input
+                  type="checkbox"
+                  checked={number.outlineEnabled}
+                  onChange={() => setNumber((n) => ({ ...n, outlineEnabled: !n.outlineEnabled }))}
+                />
+                <span className="name">Outline</span>
+                <input
+                  type="color"
+                  value={number.outline}
+                  disabled={!number.outlineEnabled}
+                  onChange={(e) => setNumber((n) => ({ ...n, outline: e.target.value }))}
+                />
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="section">
           <h2>Zone groups</h2>
           {Object.keys(meta.groups).map((g) => (
-            <Row key={g} k={g} label={g} group ov={overrides[g]} toggle={toggle} setColor={setColor} />
+            <Row key={g} k={g} label={g} group ov={overrides[g]} toggle={toggle} setColor={setColor}
+              materials={meta.materials} mat={zoneMaterials[g]} setMaterial={setMaterial} />
           ))}
         </div>
 
         <div className="section">
           <h2>Panels</h2>
           {meta.zones.map((z) => (
-            <Row key={z} k={z} label={z} ov={overrides[z]} toggle={toggle} setColor={setColor} />
+            <Row key={z} k={z} label={z} ov={overrides[z]} toggle={toggle} setColor={setColor}
+              materials={meta.materials} mat={zoneMaterials[z]} setMaterial={setMaterial} />
           ))}
         </div>
 
@@ -219,12 +307,20 @@ export default function App() {
 
       <div className="main">
         {loading && <div className="loading">rendering…</div>}
+        <div className="view-toggle">
+          <button className={view === 'color' ? 'sel' : ''} onClick={() => setView('color')}>Color</button>
+          <button className={view === 'spec' ? 'sel' : ''} onClick={() => setView('spec')}>Spec map</button>
+        </div>
         {preview && (
           <div className="preview-wrap">
             <img src={preview} alt="livery preview" />
           </div>
         )}
-        <p className="note">Flat UV preview (the car's unwrapped skin). 3D preview is a later milestone.</p>
+        <p className="note">
+          {view === 'spec'
+            ? 'Spec map (material finish): R=metallic, G=roughness, B=clearcoat.'
+            : 'Flat UV preview (the car’s unwrapped skin). 3D preview is a later milestone.'}
+        </p>
         {warnings.map((w, i) => <p className="warn" key={i}>⚠ {w}</p>)}
         {error && <p className="error">{error}</p>}
       </div>
@@ -232,12 +328,25 @@ export default function App() {
   )
 }
 
-function Row({ k, label, ov, toggle, setColor, group }) {
+function Row({ k, label, ov, toggle, setColor, group, materials, mat, setMaterial }) {
   if (!ov) return null
   return (
     <div className={`row ${ov.enabled ? '' : 'off'}`}>
       <input type="checkbox" checked={ov.enabled} onChange={() => toggle(k)} />
       <span className={`name ${group ? 'group-name' : ''}`}>{label}</span>
+      {materials && (
+        <select
+          className="mat-select"
+          value={mat || 'default'}
+          title="Finish"
+          onChange={(e) => setMaterial(k, e.target.value)}
+        >
+          <option value="default">finish…</option>
+          {materials.map((mt) => (
+            <option key={mt} value={mt}>{mt}</option>
+          ))}
+        </select>
+      )}
       <input
         type="color"
         value={ov.color}

@@ -105,13 +105,16 @@ async def validate_spec(request: Request):
 
 
 @app.post("/api/render")
-async def render(request: Request):
+async def render(request: Request, view: str = "color"):
     spec = await _spec_from(request)
     try:
         template_dir, _ = validate(spec, TEMPLATES_ROOT)
     except SpecError as e:
         raise HTTPException(400, str(e))
-    img = build_color_image(spec, template_dir).convert("RGB")
+    if view == "spec":
+        img = build_spec_map(spec, template_dir).convert("RGB")
+    else:
+        img = build_color_image(spec, template_dir).convert("RGB")
     img.thumbnail((PREVIEW_MAX, PREVIEW_MAX))
     buf = io.BytesIO()
     img.save(buf, format="PNG")

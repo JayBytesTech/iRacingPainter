@@ -98,3 +98,21 @@ body {
 .pattern-none { color: var(--muted); font-size: 11px; font-weight: 600; }
 .pattern-colors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .pattern-colors label { font-size: 11px; }
+
+/* Selects (finish dropdowns) */
+.field select, .mat-select {
+  padding: 6px 8px; background: var(--panel2); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); font-size: 12px; cursor: pointer;
+}
+.field select { width: 100%; }
+.mat-select { max-width: 96px; }
+
+/* Color / spec-map view toggle */
+.view-toggle { position: absolute; top: 16px; left: 20px; display: flex; gap: 0; }
+.view-toggle button {
+  padding: 6px 12px; background: var(--panel2); border: 1px solid var(--border);
+  color: var(--muted); font-size: 12px; cursor: pointer;
+}
+.view-toggle button:first-child { border-radius: 6px 0 0 6px; }
+.view-toggle button:last-child { border-radius: 0 6px 6px 0; border-left: none; }
+.view-toggle button.sel { background: var(--accent); color: #fff; border-color: var(--accent); }

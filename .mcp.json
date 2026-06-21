@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "iracing-painter": {
+      "command": ".venv/bin/python",
+      "args": ["-m", "iracing_painter.mcp_server"]
+    }
+  }
+}

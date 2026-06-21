@@ -1,5 +1,6 @@
 fastapi==0.138.0
 jsonschema==4.26.0
+mcp==1.28.0
 numpy==2.4.6
 pillow==12.2.0
 psd-tools==1.17.2

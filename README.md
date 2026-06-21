@@ -54,8 +54,8 @@ See the PRD for full scope/architecture. Status:
 - [~] **P15 Cross-panel designs** — global design-space `layout.py` + a `stripes`
       fill that lines up across seams. Works *within* connected panel groups
       (front/sides); car-wide alignment is parked on the calibration screenshots.
-- [ ] **MCP server** — drive the whole engine as Claude tools over the same API.
-      *(planned next)*
+- [x] **MCP server** — drive the whole engine as Claude tools (Desktop or Code):
+      discover, validate, render preview, export. (`mcp_server.py`, `.mcp.json`)
 
 ## Template facts (Porsche 992 R GT3)
 
@@ -155,8 +155,44 @@ API endpoints: `GET /api/templates/{id}`, `GET /api/templates/{id}/zone_at?x=&y=
 (UV pixel → panel), `GET /api/templates/{id}/patterns` (+
 `/{pattern_id}/thumb`), `GET /api/assets`, `POST /api/assets` (upload PNG/SVG),
 `GET /api/assets/{name}/image`, `POST /api/validate`,
-`POST /api/render?view=color|spec` (PNG), `POST /api/export` (zip of TGAs). The
-same API will back the planned MCP server.
+`POST /api/render?view=color|spec` (PNG), `POST /api/export` (zip of TGAs).
+
+## MCP server
+
+The same engine is also exposed as an [MCP](https://modelcontextprotocol.io) server
+so an MCP client (Claude Desktop or Claude Code) can drive the whole pipeline with
+tools — the spec stays the contract. Tools:
+
+- `list_templates` / `get_template` — discover what a template offers (zones,
+  groups, materials, stock patterns, logo assets).
+- `get_authoring_guide` — the spec authoring reference (`docs/AUTHORING.md`).
+- `validate_spec` — check a spec against the contract.
+- `render_preview` — render a spec to a PNG (`view='color'` or `'spec'`), returned
+  inline as an image.
+- `export_tgas` — write iRacing-ready color + spec TGAs to `out/`.
+
+Run it (stdio transport):
+
+```bash
+python -m iracing_painter.mcp_server
+```
+
+**Claude Code** picks it up automatically from the project's `.mcp.json`.
+**Claude Desktop** — add to `claude_desktop_config.json` (use absolute paths):
+
+```json
+{
+  "mcpServers": {
+    "iracing-painter": {
+      "command": "/abs/path/to/iRacing Painter/.venv/bin/python",
+      "args": ["-m", "iracing_painter.mcp_server"]
+    }
+  }
+}
+```
+
+Then just describe a livery — the client calls `get_template`, authors a spec,
+`render_preview`s it, and `export_tgas` when you're happy.
 
 ## Getting a paint in-sim
 

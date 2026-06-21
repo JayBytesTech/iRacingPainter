@@ -40,6 +40,28 @@ class LocalAssetProvider:
     def has(self, name: str) -> bool:
         return name in set(self.names())
 
+    def add(self, filename: str, data: bytes, *, source="user upload",
+            license="user-provided") -> str:
+        """Save an uploaded asset and register it. Returns the asset name.
+
+        Only .png/.svg are accepted; the name is sanitized to a safe slug so an
+        upload can never write outside the library directory.
+        """
+        suffix = Path(filename).suffix.lower()
+        if suffix not in (".png", ".svg"):
+            raise AssetError(f"unsupported asset type {suffix!r} (use .png or .svg)")
+        stem = Path(filename).stem
+        slug = "".join(c if c.isalnum() or c in "-_" else "_" for c in stem).strip("_")
+        if not slug:
+            raise AssetError("invalid asset name")
+        self.root.mkdir(parents=True, exist_ok=True)
+        (self.root / f"{slug}{suffix}").write_bytes(data)
+        self.manifest[slug] = {
+            "file": f"{slug}{suffix}", "source": source, "license": license,
+        }
+        (self.root / "manifest.json").write_text(json.dumps(self.manifest, indent=2))
+        return slug
+
     def get(self, name: str) -> Image.Image:
         """Return the asset as an RGBA image."""
         # Prefer a manifest entry; else look up <name>.png / <name>.svg.

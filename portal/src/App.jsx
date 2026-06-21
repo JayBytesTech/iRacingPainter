@@ -19,6 +19,12 @@ export default function App() {
   const [number, setNumber] = useState({
     enabled: false, value: '24', color: '#ffffff', outlineEnabled: false, outline: '#101010',
   })
+  // Logos: available assets + the placed instances on this livery.
+  const [assets, setAssets] = useState([])
+  const [logos, setLogos] = useState([]) // [{ id, asset, zone, scale, rotation, opacity }]
+  const [uploading, setUploading] = useState(false)
+  const fileInput = useRef(null)
+  const logoId = useRef(1)
   const [preview, setPreview] = useState(null)
   const [view, setView] = useState('color') // 'color' | 'spec'
   const [error, setError] = useState(null)
@@ -41,7 +47,21 @@ export default function App() {
       .then((r) => r.json())
       .then((p) => setPatterns(p))
       .catch(() => {})
+    loadAssets()
   }, [])
+
+  function loadAssets() {
+    fetch('/api/assets')
+      .then((r) => r.json())
+      .then((a) => setAssets(a))
+      .catch(() => {})
+  }
+
+  // Anchor targets for a logo: groups + zones.
+  const anchorTargets = useMemo(
+    () => (meta ? [...Object.keys(meta.groups), ...meta.zones] : []),
+    [meta],
+  )
 
   const activePattern = patterns.find((p) => p.id === pattern) || null
 
@@ -76,8 +96,15 @@ export default function App() {
     if (Object.keys(zmats).length) materials.zones = zmats
     if (Object.keys(materials).length) s.materials = materials
 
-    // Elements: racing number.
+    // Elements: logos (in order), then the racing number on top.
     const elements = []
+    for (const lg of logos) {
+      if (!lg.asset || !lg.zone) continue
+      const el = { type: 'logo', asset: lg.asset, zone: lg.zone, scale: lg.scale }
+      if (lg.rotation) el.rotation = lg.rotation
+      if (lg.opacity < 1) el.opacity = lg.opacity
+      elements.push(el)
+    }
     if (number.enabled && number.value.trim()) {
       const el = { type: 'number', value: number.value.trim(), color: number.color }
       if (number.outlineEnabled) el.outline = number.outline
@@ -86,7 +113,7 @@ export default function App() {
     if (elements.length) s.elements = elements
 
     return s
-  }, [name, baseColor, overrides, activePattern, patColors, defaultMaterial, zoneMaterials, number])
+  }, [name, baseColor, overrides, activePattern, patColors, defaultMaterial, zoneMaterials, number, logos])
 
   // Debounced live preview.
   useEffect(() => {
@@ -137,6 +164,41 @@ export default function App() {
   }
   function setMaterial(key, mat) {
     setZoneMaterials((m) => ({ ...m, [key]: mat }))
+  }
+
+  async function uploadLogo(fileList) {
+    const file = fileList?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/assets', { method: 'POST', body: fd })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(d.detail || 'upload failed')
+      } else {
+        loadAssets()
+        addLogo(d.name)
+      }
+    } catch (e) {
+      setError(String(e))
+    }
+    setUploading(false)
+    if (fileInput.current) fileInput.current.value = ''
+  }
+
+  function addLogo(asset) {
+    setLogos((ls) => [
+      ...ls,
+      { id: logoId.current++, asset, zone: anchorTargets[0] || 'hood', scale: 0.5, rotation: 0, opacity: 1 },
+    ])
+  }
+  function updateLogo(id, patch) {
+    setLogos((ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)))
+  }
+  function removeLogo(id) {
+    setLogos((ls) => ls.filter((l) => l.id !== id))
   }
 
   async function exportTgas() {
@@ -282,6 +344,64 @@ export default function App() {
               </div>
             </>
           )}
+        </div>
+
+        <div className="section">
+          <h2>Logos</h2>
+          <div className="asset-gallery">
+            {assets.map((a) => (
+              <button
+                key={a.name}
+                className="asset-tile"
+                title={`${a.name} — add to livery`}
+                onClick={() => addLogo(a.name)}
+              >
+                <img src={`/api/assets/${a.name}/image`} alt={a.name} loading="lazy" />
+                <span>{a.name}</span>
+              </button>
+            ))}
+          </div>
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".png,.svg,image/png,image/svg+xml"
+            style={{ display: 'none' }}
+            onChange={(e) => uploadLogo(e.target.files)}
+          />
+          <button className="btn btn-sec" disabled={uploading} onClick={() => fileInput.current?.click()}>
+            {uploading ? 'Uploading…' : 'Upload logo (PNG/SVG)'}
+          </button>
+
+          {logos.map((lg) => (
+            <div className="logo-card" key={lg.id}>
+              <div className="logo-card-head">
+                <img src={`/api/assets/${lg.asset}/image`} alt={lg.asset} />
+                <span className="name">{lg.asset}</span>
+                <button className="x" onClick={() => removeLogo(lg.id)} title="Remove">✕</button>
+              </div>
+              <div className="field">
+                <label>Anchor zone</label>
+                <select value={lg.zone} onChange={(e) => updateLogo(lg.id, { zone: e.target.value })}>
+                  {anchorTargets.map((z) => <option key={z} value={z}>{z}</option>)}
+                </select>
+              </div>
+              <label className="slider">
+                Size {Math.round(lg.scale * 100)}%
+                <input type="range" min="0.1" max="1.5" step="0.05" value={lg.scale}
+                  onChange={(e) => updateLogo(lg.id, { scale: parseFloat(e.target.value) })} />
+              </label>
+              <label className="slider">
+                Rotation {lg.rotation}°
+                <input type="range" min="-180" max="180" step="5" value={lg.rotation}
+                  onChange={(e) => updateLogo(lg.id, { rotation: parseInt(e.target.value) })} />
+              </label>
+              <label className="slider">
+                Opacity {Math.round(lg.opacity * 100)}%
+                <input type="range" min="0.1" max="1" step="0.05" value={lg.opacity}
+                  onChange={(e) => updateLogo(lg.id, { opacity: parseFloat(e.target.value) })} />
+              </label>
+            </div>
+          ))}
         </div>
 
         <div className="section">

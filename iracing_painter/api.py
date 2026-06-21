@@ -17,12 +17,12 @@ import json
 import zipfile
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from .assets import LocalAssetProvider
+from .assets import AssetError, LocalAssetProvider
 from .patterns import load_manifest, patterns_dir
 from .render import build_color_image
 from .spec import SpecError, validate
@@ -85,6 +85,30 @@ def list_assets():
         m = p.manifest.get(name, {})
         out.append({"name": name, "license": m.get("license"), "source": m.get("source")})
     return out
+
+
+@app.post("/api/assets")
+async def upload_asset(file: UploadFile = File(...)):
+    data = await file.read()
+    if len(data) > 5 * 1024 * 1024:
+        raise HTTPException(400, "asset too large (max 5 MB)")
+    try:
+        name = LocalAssetProvider().add(file.filename or "logo.png", data)
+    except AssetError as e:
+        raise HTTPException(400, str(e))
+    return {"name": name}
+
+
+@app.get("/api/assets/{name}/image")
+def asset_image(name: str):
+    try:
+        img = LocalAssetProvider().get(name).convert("RGBA")
+    except AssetError:
+        raise HTTPException(404, f"unknown asset {name!r}")
+    img.thumbnail((256, 256))
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return Response(buf.getvalue(), media_type="image/png")
 
 
 async def _spec_from(request: Request) -> dict:

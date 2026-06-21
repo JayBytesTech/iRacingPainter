@@ -120,8 +120,10 @@ template's baseline so parts (carbon/glass/trim) keep their finish.
 ## Web portal
 
 A local React/Vite portal over a FastAPI service (the same engine; the spec stays
-the contract). MVP: a stock-pattern picker (recolored with 3 colors) + base and
-per-zone/group color pickers, live preview, TGA export.
+the contract). Build a livery with: a stock-pattern picker (recolored with 3
+colors), base + per-zone/group color pickers, per-zone finish (material) controls,
+a racing number, logo upload + zone-anchored placement (size/rotation/opacity), a
+Color / Spec-map preview toggle, live preview, and TGA export.
 
 ```bash
 # 1. backend (from project root, venv active)
@@ -135,8 +137,10 @@ cd portal && npm run build                         # then just run uvicorn
 ```
 
 API endpoints: `GET /api/templates/{id}`, `GET /api/templates/{id}/patterns` (+
-`/{pattern_id}/thumb`), `GET /api/assets`, `POST /api/validate`, `POST /api/render`
-(PNG), `POST /api/export` (zip of TGAs). The same API will back the planned MCP server.
+`/{pattern_id}/thumb`), `GET /api/assets`, `POST /api/assets` (upload PNG/SVG),
+`GET /api/assets/{name}/image`, `POST /api/validate`,
+`POST /api/render?view=color|spec` (PNG), `POST /api/export` (zip of TGAs). The
+same API will back the planned MCP server.
 
 ## Getting a paint in-sim
 

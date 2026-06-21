@@ -24,7 +24,10 @@ See the PRD for full scope/architecture. Status:
 
 - [x] **P0 Plumbing** — PSD ingest, guide-layer extraction, valid TGA round-trip. (`extract.py`, `tga.py`)
 - [x] **P1a Zone map** — UV auto-segmentation + per-zone painting. (`zones.py`, `calibrate.py`)
-- [ ] **P1b Verify zones** — calibration screenshots → finalize `labels.json`. *(awaiting iRacing PC)*
+- [~] **P1b Verify zones** — a two-pass **calibration livery** (`calibrate.py`:
+      segment-ID + UV-gradient/grid) decodes identity, orientation, seams, and a
+      rough 3D map from in-sim shots → finalizes `labels.json` and closes the seam
+      graph car-wide. See `docs/CALIBRATION.md`. *(awaiting in-sim capture)*
 - [x] **P2 Spec schema v0.1 + validator** — the contract; renderer consumes validated specs. (`schemas/`, `spec.py`)
 - [~] **P3 Renderer features** — seam-safe done: zone groups (two-tone along
       boundaries) + number plates into template number blocks. Cross-panel stripes/

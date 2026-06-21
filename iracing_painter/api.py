@@ -15,7 +15,11 @@ from __future__ import annotations
 import io
 import json
 import zipfile
+from functools import lru_cache
 from pathlib import Path
+
+import numpy as np
+from PIL import Image
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -59,6 +63,37 @@ def get_template(template_id: str):
         "groups": labels.get("groups", {}),
         "materials": sorted(MATERIALS),
     }
+
+
+@lru_cache(maxsize=4)
+def _segments(template_id: str):
+    """Cached (segments array, {segment_id: zone}, {zone: group}) for a template."""
+    tdir = TEMPLATES_ROOT / template_id
+    seg = np.array(Image.open(tdir / "zones" / "segments.png"))
+    labels = json.loads((tdir / "zones" / "labels.json").read_text())
+    seg_to_zone: dict[int, str] = {}
+    for zone, ids in labels.get("zones", {}).items():
+        for i in ids:
+            seg_to_zone[int(i)] = zone
+    zone_to_group: dict[str, str] = {}
+    for group, zones in labels.get("groups", {}).items():
+        for z in zones:
+            zone_to_group.setdefault(z, group)
+    return seg, seg_to_zone, zone_to_group
+
+
+@app.get("/api/templates/{template_id}/zone_at")
+def zone_at(template_id: str, x: int, y: int):
+    """Resolve a UV pixel (template-resolution coords) to its zone/group."""
+    tdir = TEMPLATES_ROOT / template_id
+    if not (tdir / "zones" / "segments.png").exists():
+        raise HTTPException(404, "template has no segment map")
+    seg, seg_to_zone, zone_to_group = _segments(template_id)
+    h, w = seg.shape[:2]
+    xi, yi = max(0, min(w - 1, x)), max(0, min(h - 1, y))
+    sid = int(seg[yi, xi])
+    zone = seg_to_zone.get(sid)
+    return {"segment": sid, "zone": zone, "group": zone_to_group.get(zone) if zone else None}
 
 
 @app.get("/api/templates/{template_id}/patterns")

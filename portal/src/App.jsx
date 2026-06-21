@@ -25,6 +25,9 @@ export default function App() {
   const [uploading, setUploading] = useState(false)
   const fileInput = useRef(null)
   const logoId = useRef(1)
+  // Click interaction: 'select' (click a panel to color) or a logo id (place mode).
+  const [clickMode, setClickMode] = useState('select')
+  const [selectedZone, setSelectedZone] = useState(null)
   const [preview, setPreview] = useState(null)
   const [view, setView] = useState('color') // 'color' | 'spec'
   const [error, setError] = useState(null)
@@ -99,8 +102,15 @@ export default function App() {
     // Elements: logos (in order), then the racing number on top.
     const elements = []
     for (const lg of logos) {
-      if (!lg.asset || !lg.zone) continue
-      const el = { type: 'logo', asset: lg.asset, zone: lg.zone, scale: lg.scale }
+      if (!lg.asset) continue
+      let el
+      if (lg.mode === 'at' && lg.at) {
+        el = { type: 'logo', asset: lg.asset, at: lg.at, width: lg.width }
+      } else if (lg.zone) {
+        el = { type: 'logo', asset: lg.asset, zone: lg.zone, scale: lg.scale }
+      } else {
+        continue
+      }
       if (lg.rotation) el.rotation = lg.rotation
       if (lg.opacity < 1) el.opacity = lg.opacity
       elements.push(el)
@@ -191,7 +201,11 @@ export default function App() {
   function addLogo(asset) {
     setLogos((ls) => [
       ...ls,
-      { id: logoId.current++, asset, zone: anchorTargets[0] || 'hood', scale: 0.5, rotation: 0, opacity: 1 },
+      {
+        id: logoId.current++, asset, mode: 'zone',
+        zone: anchorTargets[0] || 'hood', scale: 0.5,
+        at: null, width: 300, rotation: 0, opacity: 1,
+      },
     ])
   }
   function updateLogo(id, patch) {
@@ -199,6 +213,43 @@ export default function App() {
   }
   function removeLogo(id) {
     setLogos((ls) => ls.filter((l) => l.id !== id))
+    if (clickMode === id) setClickMode('select')
+  }
+
+  async function onPreviewClick(e) {
+    if (!meta) return
+    const img = e.currentTarget
+    const rect = img.getBoundingClientRect()
+    const [W, H] = meta.resolution
+    const ux = Math.round(((e.clientX - rect.left) / rect.width) * W)
+    const uy = Math.round(((e.clientY - rect.top) / rect.height) * H)
+
+    if (typeof clickMode === 'number') {
+      // Placing a logo: switch it to explicit coords at the click.
+      updateLogo(clickMode, { mode: 'at', at: [ux, uy] })
+      setClickMode('select')
+      return
+    }
+    // Select mode: resolve the panel under the click and toggle its color.
+    try {
+      const r = await fetch(`/api/templates/${TEMPLATE}/zone_at?x=${ux}&y=${uy}`)
+      const d = await r.json()
+      if (!d.zone) {
+        setSelectedZone(null)
+        return
+      }
+      setSelectedZone(d.zone)
+      setOverrides((o) => ({
+        ...o,
+        [d.zone]: { ...o[d.zone], enabled: !o[d.zone]?.enabled },
+      }))
+      // Bring the matching row into view.
+      requestAnimationFrame(() => {
+        document.querySelector(`[data-zone="${d.zone}"]`)?.scrollIntoView({ block: 'nearest' })
+      })
+    } catch {
+      /* ignore */
+    }
   }
 
   async function exportTgas() {
@@ -379,17 +430,47 @@ export default function App() {
                 <span className="name">{lg.asset}</span>
                 <button className="x" onClick={() => removeLogo(lg.id)} title="Remove">✕</button>
               </div>
-              <div className="field">
-                <label>Anchor zone</label>
-                <select value={lg.zone} onChange={(e) => updateLogo(lg.id, { zone: e.target.value })}>
-                  {anchorTargets.map((z) => <option key={z} value={z}>{z}</option>)}
-                </select>
-              </div>
-              <label className="slider">
-                Size {Math.round(lg.scale * 100)}%
-                <input type="range" min="0.1" max="1.5" step="0.05" value={lg.scale}
-                  onChange={(e) => updateLogo(lg.id, { scale: parseFloat(e.target.value) })} />
-              </label>
+              {lg.mode === 'at' && lg.at ? (
+                <>
+                  <div className="placed-row">
+                    <span>Placed at {lg.at[0]},{lg.at[1]}</span>
+                    <button className="link" onClick={() => updateLogo(lg.id, { mode: 'zone' })}>
+                      use zone
+                    </button>
+                  </div>
+                  <button
+                    className={`btn btn-sec ${clickMode === lg.id ? 'active' : ''}`}
+                    onClick={() => setClickMode(clickMode === lg.id ? 'select' : lg.id)}
+                  >
+                    {clickMode === lg.id ? 'Click the car…' : 'Re-place on car'}
+                  </button>
+                  <label className="slider">
+                    Width {lg.width}px
+                    <input type="range" min="40" max="800" step="10" value={lg.width}
+                      onChange={(e) => updateLogo(lg.id, { width: parseInt(e.target.value) })} />
+                  </label>
+                </>
+              ) : (
+                <>
+                  <div className="field">
+                    <label>Anchor zone</label>
+                    <select value={lg.zone} onChange={(e) => updateLogo(lg.id, { zone: e.target.value })}>
+                      {anchorTargets.map((z) => <option key={z} value={z}>{z}</option>)}
+                    </select>
+                  </div>
+                  <button
+                    className={`btn btn-sec ${clickMode === lg.id ? 'active' : ''}`}
+                    onClick={() => setClickMode(clickMode === lg.id ? 'select' : lg.id)}
+                  >
+                    {clickMode === lg.id ? 'Click the car…' : 'Place on car'}
+                  </button>
+                  <label className="slider">
+                    Size {Math.round(lg.scale * 100)}%
+                    <input type="range" min="0.1" max="1.5" step="0.05" value={lg.scale}
+                      onChange={(e) => updateLogo(lg.id, { scale: parseFloat(e.target.value) })} />
+                  </label>
+                </>
+              )}
               <label className="slider">
                 Rotation {lg.rotation}°
                 <input type="range" min="-180" max="180" step="5" value={lg.rotation}
@@ -408,7 +489,8 @@ export default function App() {
           <h2>Zone groups</h2>
           {Object.keys(meta.groups).map((g) => (
             <Row key={g} k={g} label={g} group ov={overrides[g]} toggle={toggle} setColor={setColor}
-              materials={meta.materials} mat={zoneMaterials[g]} setMaterial={setMaterial} />
+              materials={meta.materials} mat={zoneMaterials[g]} setMaterial={setMaterial}
+              selected={selectedZone === g} />
           ))}
         </div>
 
@@ -416,7 +498,8 @@ export default function App() {
           <h2>Panels</h2>
           {meta.zones.map((z) => (
             <Row key={z} k={z} label={z} ov={overrides[z]} toggle={toggle} setColor={setColor}
-              materials={meta.materials} mat={zoneMaterials[z]} setMaterial={setMaterial} />
+              materials={meta.materials} mat={zoneMaterials[z]} setMaterial={setMaterial}
+              selected={selectedZone === z} />
           ))}
         </div>
 
@@ -431,9 +514,17 @@ export default function App() {
           <button className={view === 'color' ? 'sel' : ''} onClick={() => setView('color')}>Color</button>
           <button className={view === 'spec' ? 'sel' : ''} onClick={() => setView('spec')}>Spec map</button>
         </div>
+        {typeof clickMode === 'number' ? (
+          <div className="click-banner placing">
+            ◎ Click the car to place “{logos.find((l) => l.id === clickMode)?.asset}”
+            <button onClick={() => setClickMode('select')}>cancel</button>
+          </div>
+        ) : (
+          <div className="click-banner">Click a panel to color it{selectedZone ? ` — selected: ${selectedZone}` : ''}</div>
+        )}
         {preview && (
-          <div className="preview-wrap">
-            <img src={preview} alt="livery preview" />
+          <div className={`preview-wrap ${typeof clickMode === 'number' ? 'placing' : 'selecting'}`}>
+            <img src={preview} alt="livery preview" onClick={onPreviewClick} />
           </div>
         )}
         <p className="note">
@@ -448,10 +539,10 @@ export default function App() {
   )
 }
 
-function Row({ k, label, ov, toggle, setColor, group, materials, mat, setMaterial }) {
+function Row({ k, label, ov, toggle, setColor, group, materials, mat, setMaterial, selected }) {
   if (!ov) return null
   return (
-    <div className={`row ${ov.enabled ? '' : 'off'}`}>
+    <div className={`row ${ov.enabled ? '' : 'off'} ${selected ? 'selected' : ''}`} data-zone={k}>
       <input type="checkbox" checked={ov.enabled} onChange={() => toggle(k)} />
       <span className={`name ${group ? 'group-name' : ''}`}>{label}</span>
       {materials && (

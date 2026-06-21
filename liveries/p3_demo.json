@@ -7,7 +7,7 @@
   "zones": {
     "roof": { "fill": { "type": "solid", "color": "#f5f5f5" } },
     "hood": { "fill": { "type": "solid", "color": "#f5f5f5" } },
-    "rockers": { "fill": { "type": "solid", "color": "#f2c200" } },
+    "doors": { "fill": { "type": "solid", "color": "#f2c200" } },
     "rear": { "fill": { "type": "solid", "color": "#f2c200" } }
   },
   "elements": [

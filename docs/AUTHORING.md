@@ -42,11 +42,12 @@ Validated against `iracing_painter/schemas/livery-0.1.schema.json`.
 - Colors are `#rrggbb`.
 
 ## Available for `porsche_992_gt3`
-**Zones** (DRAFT — unverified until in-sim calibration; names/coverage may shift):
-`roof`, `hood`, `front_bumper`, `rocker_left`, `rocker_right`, `rear_wing`,
+**Zones** (draft-v1 — audited via number blocks/decals/seam graph; sides still
+provisional until in-sim check): `roof`, `hood`, `door_left`, `door_right`,
+`front_bumper`, `rear_bumper`, `rear_deck`, `rocker_left`, `rear_wing`,
 `mirror_left`, `mirror_right`, `rear_quarter_left`, `rear_quarter_right`.
 
-**Groups** (unions, usable anywhere a zone is): `rockers`, `mirrors`,
+**Groups** (unions, usable anywhere a zone is): `doors`, `mirrors`,
 `rear_quarters`, `rear`.
 
 **Logo assets**: `apex`, `volt` (placeholder originals; real sponsor library later).
@@ -70,6 +71,6 @@ List current assets from `assets/logos/manifest.json`.
 
 ## Tips for good results
 - Pull a coherent `palette` first, then assign zones/groups from it.
-- Default the body, override a few zones for contrast (roof/hood/rockers read well).
+- Default the body, override a few zones for contrast (roof/hood/doors read well).
 - Use `materials` for finish (e.g. matte roof, metallic body) — subtle but effective.
 - Keep numbers high-contrast vs. their backing.

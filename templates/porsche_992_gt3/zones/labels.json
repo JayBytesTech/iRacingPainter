@@ -1,28 +1,46 @@
 {
-  "_comment": "Semantic zone name -> list of segment ids from segments.json. Built from a first visual pass of the auto-segmented UV; VERIFY/EXTEND against zones/segments_preview.png. Unlisted segments are currently unnamed.",
-  "_status": "draft-v0",
+  "_comment": "Semantic zone name -> list of segment ids. Audited 2026-06-20 against ground truth: number-block placement (numbers only go on hood/doors/rear), baked decals (PORSCHE/GT3R), and the pattern-derived seam graph (zones/seams.json). See _evidence and _needs_insim below.",
+  "_status": "draft-v1",
   "zones": {
     "roof": [8],
     "hood": [61, 62],
+    "door_left": [14],
+    "door_right": [15],
     "front_bumper": [78],
+    "rear_bumper": [63],
+    "rear_deck": [9],
     "rocker_left": [51],
-    "rocker_right": [63],
     "rear_wing": [43],
     "mirror_left": [27],
     "mirror_right": [28],
     "rear_quarter_left": [84],
     "rear_quarter_right": [47]
   },
-  "_groups_comment": "Named unions of zones for convenient multi-zone fills (seam-safe along boundaries). Usable anywhere a zone name is. DRAFT, refine with zone names.",
+  "_groups_comment": "Named unions of zones for convenient multi-zone fills (seam-safe along boundaries). Usable anywhere a zone name is.",
   "groups": {
-    "rockers": ["rocker_left", "rocker_right"],
+    "doors": ["door_left", "door_right"],
     "mirrors": ["mirror_left", "mirror_right"],
     "rear_quarters": ["rear_quarter_left", "rear_quarter_right"],
-    "rear": ["rear_quarter_left", "rear_quarter_right", "rear_wing"]
+    "rear": ["rear_bumper", "rear_deck", "rear_quarter_left", "rear_quarter_right", "rear_wing"]
+  },
+  "_evidence": {
+    "hood=61": "confirmed: front number block #5 sits 100% on seg61",
+    "door_left=14,door_right=15": "confirmed as doors: side number blocks #2,#3 sit on them (L/R provisional)",
+    "rear_deck=9": "carries rear number block #1",
+    "rear_bumper=63": "was mislabeled rocker_right; seg63 holds the rear 'PORSCHE' lettering and the seam graph links it to rear_wing(43), not the floor",
+    "rear_quarters=84,47": "seam graph: 84<->47 are an adjacent pair (212 inliers, ~1px) at the tail",
+    "removed": "rocker_right=[63] (wrong) and the rockers group (rocker_left's true twin is not yet identified)"
+  },
+  "_needs_insim": {
+    "_comment": "Resolvable only with one in-sim screenshot (or Jay's knowledge). Until then these are provisional.",
+    "left_right_sides": "door_left/right, rear_quarter_left/right, mirror_left/right, rocker_left — sides may be swapped",
+    "rocker_right": "true right rocker (mirror of seg51) not yet identified among unlabeled segments",
+    "hood_seg62": "seg62 grouped into hood from the original pass; not independently confirmed",
+    "roof=8": "plausible (GT3R text) but not pinned by a number block"
   },
   "_unverified": {
-    "_comment": "Large segments not yet confidently named — need Jay to identify.",
+    "_comment": "Large unnamed segments. Seam graph hints noted.",
     "big_panel_topleft": [2],
-    "central_panel": [46]
+    "central_front": [46]
   }
 }

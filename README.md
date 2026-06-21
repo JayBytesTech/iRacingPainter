@@ -85,7 +85,7 @@ v0.1 renders: solid `base`, `zones` (a zone *or group* name from `labels.json`),
 `number` elements (drawn into the template's number blocks). `materials` and other
 element types are accepted/rendered in later phases.
 
-Zone groups (e.g. `rockers`, `rear`) are defined in `zones/labels.json` and usable
+Zone groups (e.g. `doors`, `rear`) are defined in `zones/labels.json` and usable
 anywhere a zone name is.
 
 **Stock patterns.** The `base` fill can instead be a `pattern` — one of the car's

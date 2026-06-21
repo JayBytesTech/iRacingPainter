@@ -7,7 +7,7 @@
   "zones": {
     "roof": { "fill": { "type": "solid", "color": "#f5f5f5" } },
     "hood": { "fill": { "type": "solid", "color": "#f5f5f5" } },
-    "rockers": { "fill": { "type": "solid", "color": "#e23030" } }
+    "doors": { "fill": { "type": "solid", "color": "#e23030" } }
   },
   "elements": [
     { "type": "logo", "asset": "apex", "zone": "hood", "scale": 0.55 },

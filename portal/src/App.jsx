@@ -44,9 +44,13 @@ export default function App() {
       .then((r) => r.json())
       .then((m) => {
         setMeta(m)
+        const blank = () => ({
+          enabled: false, type: 'solid', color: '#ffffff',
+          colors: ['#ffffff', '#101010'], angle: 0, width: 80,
+        })
         const init = {}
-        for (const z of m.zones) init[z] = { enabled: false, color: '#ffffff' }
-        for (const g of Object.keys(m.groups)) init[g] = { enabled: false, color: '#ffffff' }
+        for (const z of m.zones) init[z] = blank()
+        for (const g of Object.keys(m.groups)) init[g] = blank()
         setOverrides(init)
       })
       .catch((e) => setError(String(e)))
@@ -75,7 +79,12 @@ export default function App() {
   const spec = useMemo(() => {
     const zones = {}
     for (const [k, v] of Object.entries(overrides)) {
-      if (v.enabled) zones[k] = { fill: { type: 'solid', color: v.color } }
+      if (!v.enabled) continue
+      let fill
+      if (v.type === 'gradient') fill = { type: 'gradient', colors: v.colors, angle: v.angle }
+      else if (v.type === 'stripes') fill = { type: 'stripes', colors: v.colors, angle: v.angle, width: v.width }
+      else fill = { type: 'solid', color: v.color }
+      zones[k] = { fill }
     }
     let baseFill
     if (activePattern) {
@@ -175,8 +184,8 @@ export default function App() {
   function toggle(key) {
     setOverrides((o) => ({ ...o, [key]: { ...o[key], enabled: !o[key].enabled } }))
   }
-  function setColor(key, color) {
-    setOverrides((o) => ({ ...o, [key]: { ...o[key], color, enabled: true } }))
+  function setField(key, patch) {
+    setOverrides((o) => ({ ...o, [key]: { ...o[key], ...patch, enabled: true } }))
   }
   function setMaterial(key, mat) {
     setZoneMaterials((m) => ({ ...m, [key]: mat }))
@@ -526,7 +535,7 @@ export default function App() {
         <div className="section">
           <h2>Zone groups</h2>
           {Object.keys(meta.groups).map((g) => (
-            <Row key={g} k={g} label={g} group ov={overrides[g]} toggle={toggle} setColor={setColor}
+            <Row key={g} k={g} label={g} group ov={overrides[g]} toggle={toggle} setField={setField}
               materials={meta.materials} mat={zoneMaterials[g]} setMaterial={setMaterial}
               selected={selectedZone === g} />
           ))}
@@ -535,7 +544,7 @@ export default function App() {
         <div className="section">
           <h2>Panels</h2>
           {meta.zones.map((z) => (
-            <Row key={z} k={z} label={z} ov={overrides[z]} toggle={toggle} setColor={setColor}
+            <Row key={z} k={z} label={z} ov={overrides[z]} toggle={toggle} setField={setField}
               materials={meta.materials} mat={zoneMaterials[z]} setMaterial={setMaterial}
               selected={selectedZone === z} />
           ))}
@@ -577,31 +586,50 @@ export default function App() {
   )
 }
 
-function Row({ k, label, ov, toggle, setColor, group, materials, mat, setMaterial, selected }) {
+function Row({ k, label, ov, toggle, setField, group, materials, mat, setMaterial, selected }) {
   if (!ov) return null
+  const setColors = (i, val) => setField(k, { colors: ov.colors.map((c, j) => (j === i ? val : c)) })
   return (
-    <div className={`row ${ov.enabled ? '' : 'off'} ${selected ? 'selected' : ''}`} data-zone={k}>
-      <input type="checkbox" checked={ov.enabled} onChange={() => toggle(k)} />
-      <span className={`name ${group ? 'group-name' : ''}`}>{label}</span>
-      {materials && (
-        <select
-          className="mat-select"
-          value={mat || 'default'}
-          title="Finish"
-          onChange={(e) => setMaterial(k, e.target.value)}
-        >
-          <option value="default">finish…</option>
-          {materials.map((mt) => (
-            <option key={mt} value={mt}>{mt}</option>
-          ))}
-        </select>
+    <div className={`zrow ${ov.enabled ? '' : 'off'} ${selected ? 'selected' : ''}`} data-zone={k}>
+      <div className="row">
+        <input type="checkbox" checked={ov.enabled} onChange={() => toggle(k)} />
+        <span className={`name ${group ? 'group-name' : ''}`}>{label}</span>
+        {materials && (
+          <select className="mat-select" value={mat || 'default'} title="Finish"
+            onChange={(e) => setMaterial(k, e.target.value)}>
+            <option value="default">finish…</option>
+            {materials.map((mt) => <option key={mt} value={mt}>{mt}</option>)}
+          </select>
+        )}
+      </div>
+      {ov.enabled && (
+        <div className="row-fill">
+          <select className="mat-select" value={ov.type} title="Fill"
+            onChange={(e) => setField(k, { type: e.target.value })}>
+            <option value="solid">solid</option>
+            <option value="gradient">gradient</option>
+            <option value="stripes">stripes</option>
+          </select>
+          {ov.type === 'solid' ? (
+            <input type="color" value={ov.color} onChange={(e) => setField(k, { color: e.target.value })} />
+          ) : (
+            <>
+              <input type="color" value={ov.colors[0]} onChange={(e) => setColors(0, e.target.value)} />
+              <input type="color" value={ov.colors[1]} onChange={(e) => setColors(1, e.target.value)} />
+              <label className="mini">∠
+                <input type="number" min="0" max="180" value={ov.angle}
+                  onChange={(e) => setField(k, { angle: parseInt(e.target.value) || 0 })} />
+              </label>
+              {ov.type === 'stripes' && (
+                <label className="mini">w
+                  <input type="number" min="10" max="400" value={ov.width}
+                    onChange={(e) => setField(k, { width: parseInt(e.target.value) || 10 })} />
+                </label>
+              )}
+            </>
+          )}
+        </div>
       )}
-      <input
-        type="color"
-        value={ov.color}
-        disabled={!ov.enabled}
-        onChange={(e) => setColor(k, e.target.value)}
-      />
     </div>
   )
 }

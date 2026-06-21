@@ -177,3 +177,22 @@ body {
 .link { background: none; border: none; color: var(--accent2); cursor: pointer; font-size: 11px; }
 .btn-sec.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .logo-card .btn-sec { width: 100%; padding: 7px; font-size: 12px; margin-bottom: 8px; }
+
+/* Per-zone fill rows (solid / gradient / stripes) */
+.zrow { border-radius: 6px; }
+.zrow.selected { outline: 2px solid var(--accent2); background: var(--panel2); }
+.zrow.off .name { color: var(--muted); }
+.row-fill {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  padding: 0 8px 8px 34px;
+}
+.row-fill input[type="color"] {
+  width: 30px; height: 24px; padding: 0; border: 1px solid var(--border);
+  border-radius: 5px; background: none; cursor: pointer;
+}
+.row-fill .mat-select { max-width: 90px; }
+.mini { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: var(--muted); }
+.mini input[type="number"] {
+  width: 46px; padding: 4px 5px; background: var(--panel2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 5px; font-size: 11px;
+}

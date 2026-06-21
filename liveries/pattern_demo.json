@@ -1,0 +1,22 @@
+{
+  "schema_version": "0.1",
+  "template": "porsche_992_gt3",
+  "meta": {
+    "name": "Pattern Demo",
+    "description": "Stock pattern 7 recolored navy/white/crimson, with a black roof and a matte rear wing."
+  },
+  "base": {
+    "fill": {
+      "type": "pattern",
+      "pattern": "007",
+      "colors": ["#0a1f44", "#f2f2f2", "#b11226"]
+    }
+  },
+  "zones": {
+    "roof": { "fill": { "type": "solid", "color": "#111111" } }
+  },
+  "materials": {
+    "default": "gloss",
+    "zones": { "rear_wing": "matte" }
+  }
+}

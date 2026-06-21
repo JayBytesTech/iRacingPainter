@@ -88,6 +88,21 @@ element types are accepted/rendered in later phases.
 Zone groups (e.g. `rockers`, `rear`) are defined in `zones/labels.json` and usable
 anywhere a zone name is.
 
+**Stock patterns.** The `base` fill can instead be a `pattern` — one of the car's
+built-in iRacing designs (the numbered patterns from the paint shop), recolored
+with up to 3 colors:
+
+```json
+{ "base": { "fill": { "type": "pattern", "pattern": "007",
+                      "colors": ["#0a1f44", "#f2f2f2", "#b11226"] } } }
+```
+
+iRacing encodes each pattern as a pure R/G/B channel mask (Red→color 1, Green→
+color 2, Blue→color 3); the renderer maps those to your colors and blends the
+anti-aliased edges. Zones still override on top and baked decals are preserved.
+Patterns are extracted from the template PSD into `templates/<t>/patterns/`
+(iRacing's IP — gitignored, regenerate with `extract`).
+
 **Logos** come from the asset library (`assets/logos/`, with a `manifest.json` tracking
 source/license). A `logo` element references an asset by name and is placed either
 anchored to a zone/group (`"zone": "hood", "scale": 0.55`) or at explicit UV coords
@@ -105,7 +120,8 @@ template's baseline so parts (carbon/glass/trim) keep their finish.
 ## Web portal
 
 A local React/Vite portal over a FastAPI service (the same engine; the spec stays
-the contract). MVP: base + per-zone/group color pickers, live preview, TGA export.
+the contract). MVP: a stock-pattern picker (recolored with 3 colors) + base and
+per-zone/group color pickers, live preview, TGA export.
 
 ```bash
 # 1. backend (from project root, venv active)
@@ -118,9 +134,9 @@ cd portal && npm install && npm run dev            # opens :5173
 cd portal && npm run build                         # then just run uvicorn
 ```
 
-API endpoints: `GET /api/templates/{id}`, `GET /api/assets`, `POST /api/validate`,
-`POST /api/render` (PNG), `POST /api/export` (zip of TGAs). The same API will back
-the planned MCP server.
+API endpoints: `GET /api/templates/{id}`, `GET /api/templates/{id}/patterns` (+
+`/{pattern_id}/thumb`), `GET /api/assets`, `POST /api/validate`, `POST /api/render`
+(PNG), `POST /api/export` (zip of TGAs). The same API will back the planned MCP server.
 
 ## Getting a paint in-sim
 

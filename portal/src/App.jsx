@@ -6,6 +6,10 @@ export default function App() {
   const [meta, setMeta] = useState(null)
   const [name, setName] = useState('My Livery')
   const [baseColor, setBaseColor] = useState('#1a1a1a')
+  // Stock pattern: null = plain solid base. Otherwise an id from the manifest.
+  const [patterns, setPatterns] = useState([])
+  const [pattern, setPattern] = useState(null)
+  const [patColors, setPatColors] = useState(['#0a1f44', '#f2f2f2', '#b11226'])
   // overrides: { [zoneOrGroup]: { enabled: bool, color: '#rrggbb' } }
   const [overrides, setOverrides] = useState({})
   const [preview, setPreview] = useState(null)
@@ -25,22 +29,36 @@ export default function App() {
         setOverrides(init)
       })
       .catch((e) => setError(String(e)))
+    fetch(`/api/templates/${TEMPLATE}/patterns`)
+      .then((r) => r.json())
+      .then((p) => setPatterns(p))
+      .catch(() => {})
   }, [])
+
+  const activePattern = patterns.find((p) => p.id === pattern) || null
 
   const spec = useMemo(() => {
     const zones = {}
     for (const [k, v] of Object.entries(overrides)) {
       if (v.enabled) zones[k] = { fill: { type: 'solid', color: v.color } }
     }
+    let baseFill
+    if (activePattern) {
+      baseFill = activePattern.recolor
+        ? { type: 'pattern', pattern: activePattern.id, colors: patColors }
+        : { type: 'pattern', pattern: activePattern.id, colors: ['#000000'] }
+    } else {
+      baseFill = { type: 'solid', color: baseColor }
+    }
     const s = {
       schema_version: '0.1',
       template: TEMPLATE,
       meta: { name },
-      base: { fill: { type: 'solid', color: baseColor } },
+      base: { fill: baseFill },
     }
     if (Object.keys(zones).length) s.zones = zones
     return s
-  }, [name, baseColor, overrides])
+  }, [name, baseColor, overrides, activePattern, patColors])
 
   // Debounced live preview.
   useEffect(() => {
@@ -125,10 +143,59 @@ export default function App() {
             <label>Livery name</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
-          <div className="field swatch-base">
-            <label>Body (base) color</label>
-            <input type="color" value={baseColor} onChange={(e) => setBaseColor(e.target.value)} />
+          {!activePattern && (
+            <div className="field swatch-base">
+              <label>Body (base) color</label>
+              <input type="color" value={baseColor} onChange={(e) => setBaseColor(e.target.value)} />
+            </div>
+          )}
+        </div>
+
+        <div className="section">
+          <h2>Design</h2>
+          <div className="pattern-grid">
+            <button
+              className={`pattern-tile ${activePattern ? '' : 'sel'}`}
+              onClick={() => setPattern(null)}
+              title="Solid color"
+            >
+              <span className="pattern-none">Solid</span>
+            </button>
+            {patterns.map((p) => (
+              <button
+                key={p.id}
+                className={`pattern-tile ${pattern === p.id ? 'sel' : ''}`}
+                onClick={() => setPattern(p.id)}
+                title={p.name + (p.recolor ? '' : ' (fixed colors)')}
+              >
+                <img
+                  src={`/api/templates/${TEMPLATE}/patterns/${p.id}/thumb`}
+                  alt={p.name}
+                  loading="lazy"
+                />
+              </button>
+            ))}
           </div>
+
+          {activePattern && activePattern.recolor && (
+            <div className="pattern-colors">
+              {patColors.map((c, i) => (
+                <div className="field swatch-base" key={i}>
+                  <label>Color {i + 1}</label>
+                  <input
+                    type="color"
+                    value={c}
+                    onChange={(e) =>
+                      setPatColors((cs) => cs.map((x, j) => (j === i ? e.target.value : x)))
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+          {activePattern && !activePattern.recolor && (
+            <p className="note">{activePattern.name} has fixed colors (baked design).</p>
+          )}
         </div>
 
         <div className="section">

@@ -21,6 +21,9 @@ templates/*/zones/segments_preview.png
 # Auto-generated calibration skins (regenerate with: python -m iracing_painter.calibrate <template>)
 templates/*/calibration/
 
+# Stock paint patterns: iRacing's IP (template-derived), regenerate with extract.
+templates/*/patterns/
+
 # OS
 .DS_Store
 

@@ -69,11 +69,24 @@ def build_color_image(spec: dict, template_dir: str | Path) -> Image.Image:
                 arr[..., c][mask] = color[c]
             painted |= mask
 
-    # Base fill on every remaining original-body pixel.
-    base_color = _surface_color(spec["base"])
+    # Base fill on every remaining original-body pixel: a solid color, or a
+    # recolored stock pattern mapped across the whole body.
     rest = is_body & ~painted
-    for c in range(3):
-        arr[..., c][rest] = base_color[c]
+    base_fill = spec["base"]["fill"]
+    if base_fill.get("type") == "pattern":
+        from .patterns import load_pattern, manifest_entry, recolor
+
+        pat = load_pattern(template_dir, base_fill["pattern"])
+        entry = manifest_entry(template_dir, base_fill["pattern"]) or {}
+        if entry.get("recolor", True):
+            colors = [_hex_to_rgb(c) for c in base_fill["colors"]]
+            pat = recolor(pat, colors)  # baked patterns composite as-is
+        for c in range(3):
+            arr[..., c][rest] = pat[..., c][rest]
+    else:
+        base_color = _surface_color(spec["base"])
+        for c in range(3):
+            arr[..., c][rest] = base_color[c]
 
     # Elements draw on top of all fills (they're decals, not body paint),
     # in spec order.

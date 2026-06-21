@@ -92,6 +92,9 @@ def extract(template_dir: str | Path) -> None:
     # 4. Baseline spec map: composite the Custom Spec Map channel groups.
     extract_spec_base(psd, template_dir, size)
 
+    # 5. Stock paint patterns: pull the Car Patterns group as recolor maps.
+    extract_patterns(psd, template_dir, size)
+
 
 def _spec_channel(group, size):
     """Composite a spec channel group (Base Paint + optional Parts) to grayscale."""
@@ -139,6 +142,64 @@ def extract_spec_base(psd, template_dir: str | Path, size) -> None:
     out = template_dir / "spec_base.png"
     Image.fromarray(spec, "RGB").save(out)
     print(f"  spec base   -> {out}")
+
+
+def _pattern_name(layer_name: str) -> tuple[str, str]:
+    """('car_pattern_007.tga') -> ('007', 'Pattern 7'). Falls back gracefully."""
+    stem = layer_name.replace(".tga", "")
+    digits = "".join(ch for ch in stem if ch.isdigit())
+    pid = digits or stem
+    pretty = f"Pattern {int(digits)}" if digits else stem
+    return pid, pretty
+
+
+def extract_patterns(psd, template_dir: str | Path, size, group_name="Car Patterns") -> None:
+    """Extract the stock paint patterns as recolor maps + gallery thumbnails.
+
+    Writes templates/<t>/patterns/pattern_<id>.png (the raw R/G/B mask),
+    thumbs/pattern_<id>.png (neutral-recolored preview), and manifest.json.
+    Patterns are iRacing's IP (template-derived) and are gitignored, like base.png.
+    """
+    from .patterns import THUMB_SCHEME, is_recolorable, recolor
+
+    template_dir = Path(template_dir)
+    group = _find_layer(psd, group_name)
+    if group is None:
+        print(f"  ! pattern group not found: {group_name!r}; skipping patterns")
+        return
+
+    pdir = template_dir / "patterns"
+    tdir = pdir / "thumbs"
+    tdir.mkdir(parents=True, exist_ok=True)
+
+    manifest = []
+    for layer in group:
+        img = layer.topil()
+        if img is None:
+            continue
+        arr = np.array(img.convert("RGB"))
+        if arr.shape[:2] != (size[1], size[0]):
+            canvas = np.zeros((size[1], size[0], 3), np.uint8)
+            x1, y1 = layer.bbox[0], layer.bbox[1]
+            canvas[y1 : y1 + arr.shape[0], x1 : x1 + arr.shape[1]] = arr[
+                : size[1] - y1, : size[0] - x1
+            ]
+            arr = canvas
+        pid, pretty = _pattern_name(layer.name)
+        recolorable = is_recolorable(arr)
+
+        Image.fromarray(arr, "RGB").save(pdir / f"pattern_{pid}.png")
+        thumb_src = recolor(arr, THUMB_SCHEME) if recolorable else arr
+        thumb = Image.fromarray(thumb_src, "RGB")
+        thumb.thumbnail((220, 220))
+        thumb.save(tdir / f"pattern_{pid}.png")
+
+        manifest.append({"id": pid, "name": pretty, "recolor": recolorable})
+
+    manifest.sort(key=lambda e: e["id"])
+    (pdir / "manifest.json").write_text(json.dumps(manifest, indent=2))
+    n_rc = sum(1 for e in manifest if e["recolor"])
+    print(f"  patterns: {len(manifest)} ({n_rc} recolorable) -> patterns/manifest.json")
 
 
 def detect_number_blocks(template_dir: str | Path) -> None:

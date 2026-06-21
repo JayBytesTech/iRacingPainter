@@ -72,6 +72,32 @@ def validate(spec: dict, templates_root: Path) -> tuple[Path, list[str]]:
             f"template has no zones/labels.json yet; cannot verify zones {sorted(referenced)}"
         )
 
+    # 3b. Pattern fills: only on base, and the pattern id must exist.
+    for where, surface in [("base", spec.get("base"))] + [
+        (f"zones/{k}", v) for k, v in (spec.get("zones") or {}).items()
+    ]:
+        fill = (surface or {}).get("fill", {})
+        if fill.get("type") != "pattern":
+            continue
+        if where != "base":
+            raise SpecError(
+                f"pattern fill is only valid on 'base' (found on {where!r}); "
+                f"zones take a solid fill"
+            )
+        from .patterns import load_manifest
+
+        ids = {e["id"]: e for e in load_manifest(template_dir)}
+        if not ids:
+            raise SpecError(
+                f"template {spec['template']!r} has no extracted patterns — run: "
+                f"python -m iracing_painter.extract {template_dir}"
+            )
+        pid = fill["pattern"]
+        if pid not in ids:
+            raise SpecError(
+                f"unknown pattern {pid!r}; available: {sorted(ids)}"
+            )
+
     # 4. Element semantics.
     implemented_elements = {"number", "logo"}
     elements = spec.get("elements", [])
@@ -103,9 +129,6 @@ def validate(spec: dict, templates_root: Path) -> tuple[Path, list[str]]:
                     f"logo zone {el['zone']!r} not a valid zone/group. "
                     f"Valid: {sorted(valid_targets)}"
                 )
-
-    if spec.get("materials"):
-        warnings.append("materials present but spec-map generation lands in P5")
 
     return template_dir, warnings
 

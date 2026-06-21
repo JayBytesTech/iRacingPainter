@@ -82,3 +82,19 @@ body {
 .error { color: var(--accent); font-size: 13px; margin-top: 10px; max-width: 600px; text-align: center; }
 .warn { color: #d9a441; font-size: 12px; margin-top: 6px; }
 .loading { position: absolute; top: 16px; right: 20px; color: var(--muted); font-size: 12px; }
+
+/* Pattern / design gallery */
+.pattern-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px;
+}
+.pattern-tile {
+  aspect-ratio: 1; padding: 0; border: 2px solid var(--border); border-radius: 6px;
+  background: #11161c; cursor: pointer; overflow: hidden; display: flex;
+  align-items: center; justify-content: center;
+}
+.pattern-tile:hover { border-color: var(--accent2); }
+.pattern-tile.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.pattern-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pattern-none { color: var(--muted); font-size: 11px; font-weight: 600; }
+.pattern-colors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pattern-colors label { font-size: 11px; }

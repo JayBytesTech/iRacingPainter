@@ -63,7 +63,7 @@
     "fill": {
       "type": "object",
       "required": ["type"],
-      "description": "Extensible fill. v0.1 supports 'solid'; gradient/texture/generated come later.",
+      "description": "Extensible fill. v0.1 supports 'solid' and 'pattern' (a stock recolor design); gradient/texture/generated come later.",
       "oneOf": [
         {
           "additionalProperties": false,
@@ -71,6 +71,21 @@
           "properties": {
             "type": { "const": "solid" },
             "color": { "$ref": "#/$defs/color" }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["type", "pattern", "colors"],
+          "description": "A stock paint pattern recolored with up to 3 colors. Only valid on 'base' (it maps the whole body).",
+          "properties": {
+            "type": { "const": "pattern" },
+            "pattern": { "type": "string", "minLength": 1 },
+            "colors": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/color" },
+              "minItems": 1,
+              "maxItems": 3
+            }
           }
         }
       ]

@@ -23,6 +23,7 @@ from fastapi.responses import Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from .assets import LocalAssetProvider
+from .patterns import load_manifest, patterns_dir
 from .render import build_color_image
 from .spec import SpecError, validate
 from .spec_map import MATERIALS, build_spec_map
@@ -58,6 +59,22 @@ def get_template(template_id: str):
         "groups": labels.get("groups", {}),
         "materials": sorted(MATERIALS),
     }
+
+
+@app.get("/api/templates/{template_id}/patterns")
+def list_patterns(template_id: str):
+    tdir = TEMPLATES_ROOT / template_id
+    if not (tdir / "meta.json").exists():
+        raise HTTPException(404, f"unknown template {template_id!r}")
+    return load_manifest(tdir)
+
+
+@app.get("/api/templates/{template_id}/patterns/{pattern_id}/thumb")
+def pattern_thumb(template_id: str, pattern_id: str):
+    thumb = patterns_dir(TEMPLATES_ROOT / template_id) / "thumbs" / f"pattern_{pattern_id}.png"
+    if not thumb.exists():
+        raise HTTPException(404, "no such pattern thumbnail")
+    return Response(thumb.read_bytes(), media_type="image/png")
 
 
 @app.get("/api/assets")

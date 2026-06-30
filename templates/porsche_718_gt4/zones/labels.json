@@ -1,0 +1,40 @@
+{
+  "_comment": "Semantic zone name -> list of segment ids for the Porsche 718 Cayman GT4 Clubsport. Seeded 2026-06-29 from car-independent evidence: number-block placement (numbers only land on doors/hood/rear), sponsor-block placement (flat panels), and the pattern-derived seam graph with mirror/seam classification (zones/seams.json). Most panel identities still need one in-sim calibration capture to pin down — see _needs_insim.",
+  "_status": "draft-v0",
+  "zones": {
+    "door_left": [44],
+    "door_right": [80]
+  },
+  "_groups_comment": "Named unions of zones for convenient multi-zone fills. Usable anywhere a zone name is.",
+  "groups": {
+    "doors": ["door_left", "door_right"]
+  },
+  "_evidence": {
+    "doors=44,80": "strong: each carries a competition number block (blocks #2,#3) AND a large sponsor block, and the seam graph links 44<->80 as a det=-1.0 MIRROR pair (595 inliers, 1.6px) -> same part, opposite sides. L vs R is provisional (not yet pinned to a physical side).",
+    "number_panel_seg4": "seg4 (top of UV, ~147k px) carries number block #1. Numbers only go on doors/hood/rear, so seg4 is the front (hood/nose) or rear number panel -> identity pending in-sim.",
+    "method": "Replicates the 911 pipeline: extract -> zones (88 segments) -> seams (27 relations). Same as the 911, confident panel naming awaits the calibration livery applied in-sim."
+  },
+  "_mirror_pairs": {
+    "_comment": "det~=-1 reflection pairs from seams.json = left/right twins of the same part. These are the scaffold for keeping L/R consistent; assign one side in-sim and the twin follows.",
+    "pairs": [[44, 80], [39, 82], [45, 83], [38, 86], [43, 75], [54, 76], [9, 23]]
+  },
+  "_true_seams": {
+    "_comment": "det~=+1 proper-rigid adjacencies (real 3D seams for cross-panel design continuity).",
+    "pairs": [[59, 61], [39, 44], [6, 9]]
+  },
+  "_needs_insim": {
+    "_comment": "Resolvable with one calibration-livery capture (templates/porsche_718_gt4/calibration/) or Jay's knowledge.",
+    "number_panel_seg4": "front (hood/nose) vs rear number panel",
+    "left_right_sides": "door_left/right and every mirror pair: which segment is the physical left vs right side",
+    "roof_hood_rear": "the large central/top panels (seg55 largest at 202k with 2 sponsor blocks; seg2/12 top-left with the PORSCHE banner; seg58/69 center pair; seg61/62/63/68 right cluster) are unassigned pending the segid/uv_grid decode",
+    "unsegmented_body": "large blue (#3e89cd) areas were not enclosed by the green wireframe (same ~gap as the 911); the uv_grid pass will reveal the true paintable area to re-segment"
+  },
+  "_unverified": {
+    "_comment": "Largest unnamed segments with their seam-graph hints, for the in-sim pass.",
+    "biggest_left_center": [55],
+    "top_left_porsche_banner": [2, 12],
+    "center_pair": [58, 69],
+    "right_cluster": [61, 62, 63, 68],
+    "number_panel": [4]
+  }
+}

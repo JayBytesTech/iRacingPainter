@@ -168,10 +168,23 @@ def build_seam_graph(
                 [int(s[0]), int(s[1]), int(t[0]), int(t[1])]  # (ax, ay, bx, by)
                 for s, t in zip(src_i[::step], dst_i[::step])
             ]
+            # Classify the relationship from the linear part's determinant:
+            #   det ~ -1  -> reflection: the two panels are left/right MIRROR twins
+            #   det ~ +1  -> proper rigid motion: a true 3D-adjacent SEAM
+            #   det ~  0  -> singular fit over a flat/featureless region: DEGENERATE
+            det = float(np.linalg.det(np.array(M)[:2, :2]))
+            if abs(det) < 0.3:
+                kind = "degenerate"
+            elif det < 0:
+                kind = "mirror"
+            else:
+                kind = "seam"
             seams.append({
                 "a": a, "b": b,
                 "inliers": int(inl.sum()),
                 "residual_px": round(resid, 2),
+                "det": round(det, 3),
+                "kind": kind,
                 # transform maps [x,y,1] (panel A) -> [x,y] (panel B): row-major 3x2
                 "transform": [[round(v, 6) for v in row] for row in M.tolist()],
                 "samples": samples,
@@ -208,4 +221,5 @@ if __name__ == "__main__":
     for s in seams[:25]:
         an = s.get("a_zone") or f"seg{s['a']}"
         bn = s.get("b_zone") or f"seg{s['b']}"
-        print(f"  {s['inliers']:4d} inliers  resid={s['residual_px']:.1f}px   {an} <-> {bn}")
+        print(f"  {s['inliers']:4d} inliers  resid={s['residual_px']:.1f}px  "
+              f"{s.get('kind','?'):>10}   {an} <-> {bn}")

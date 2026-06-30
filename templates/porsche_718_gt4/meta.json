@@ -1,0 +1,29 @@
+{
+  "id": "porsche_718_gt4",
+  "name": "Porsche 718 Cayman GT4 Clubsport",
+  "source_psd": "/home/jaybytestech/Documents/Liveries/iRacing/Porsche Cayman 718 GT4/119_template_P718/Porsche 718 GT4.psd",
+  "resolution": [2048, 2048],
+  "body_fill_color": [62, 137, 205],
+
+  "export": {
+    "comment": "Layers/groups composited into the final color TGA. Everything in 'Turn Off Before Exporting TGA' is a guide and must be excluded.",
+    "color_group": "Paintable Area",
+    "guide_group": "Turn Off Before Exporting TGA"
+  },
+
+  "spec_map": {
+    "comment": "iRacing spec map channels, confirmed from the PSD 'Custom Spec Map' group.",
+    "red": "metallic",
+    "green": "roughness",
+    "blue": "clearcoat"
+  },
+
+  "reference_layers": {
+    "comment": "Guide layers extracted for zone-mapping and placement.",
+    "uv_wireframe": "Wire",
+    "paint_mask": "Mask",
+    "sponsor_blocks": "Sponsor Blocks",
+    "number_blocks": "Number Blocks",
+    "mandatory_decals": "Car Mandatory"
+  }
+}

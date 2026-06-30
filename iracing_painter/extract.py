@@ -102,7 +102,8 @@ def _spec_channel(group, size):
     canvas = np.zeros((h, w), np.float64)
     base = parts = None
     for c in group:
-        if c.name == "Base Paint":
+        # Spec base layer is "Base Paint" on some templates, "Base Color" on others.
+        if c.name in ("Base Paint", "Base Color"):
             base = c
         elif c.name == "Parts":
             parts = c
